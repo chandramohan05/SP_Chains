@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { SupportTicket, TicketResponse, User } from '../../types';
 import { MessageSquare, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 
 export default function SupportTicketManager() {
-  const { user } = useAuth();
   const [tickets, setTickets] = useState<(SupportTicket & { user?: User })[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [responses, setResponses] = useState<TicketResponse[]>([]);
@@ -88,11 +86,14 @@ export default function SupportTicketManager() {
     if (!selectedTicket || !newMessage.trim()) return;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id || null;
+
       const { error } = await supabase
         .from('ticket_responses')
         .insert([{
           ticket_id: selectedTicket.id,
-          user_id: user?.id,
+          user_id: userId,
           message: newMessage,
           is_staff_response: true
         }]);

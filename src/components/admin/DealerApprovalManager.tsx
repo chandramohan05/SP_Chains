@@ -2,12 +2,10 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { DealerProfile, User } from '../../types';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 
 type DealerWithUser = DealerProfile & { user: User };
 
 export function DealerApprovalManager() {
-  const { user: currentUser } = useAuth();
   const [dealers, setDealers] = useState<DealerWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
@@ -47,12 +45,15 @@ export function DealerApprovalManager() {
   const approveDealer = async (dealerId: string, creditLimit: number) => {
     setProcessingId(dealerId);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const adminId = session?.user?.id || null;
+
       const { error } = await supabase
         .from('dealer_profiles')
         .update({
           approval_status: 'approved',
           credit_limit: creditLimit,
-          approved_by: currentUser?.id,
+          approved_by: adminId,
           approved_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
