@@ -1,11 +1,13 @@
 import { DealerProfile as DealerProfileType } from '../../types';
-import { Building2, CreditCard, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Building2, CreditCard, CheckCircle, Clock, XCircle, LogOut } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface DealerProfileProps {
   profile: DealerProfileType;
 }
 
 export function DealerProfile({ profile }: DealerProfileProps) {
+  const { signOut } = useAuth();
   const getStatusIcon = () => {
     switch (profile.approval_status) {
       case 'approved':
@@ -142,6 +144,16 @@ export function DealerProfile({ profile }: DealerProfileProps) {
           </div>
         </div>
       )}
+
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+        <button
+          onClick={signOut}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-medium transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          Logout
+        </button>
+      </div>
     </div>
   );
 }

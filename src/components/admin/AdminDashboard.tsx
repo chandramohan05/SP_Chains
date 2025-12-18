@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Users, Package, DollarSign, Gift, Bell, LogOut } from 'lucide-react';
+import { Users, Package, DollarSign, Gift, Bell, LogOut, Star } from 'lucide-react';
 import { DealerApprovalManager } from './DealerApprovalManager';
 import { OrderManagement } from './OrderManagement';
 import { PricingManager } from './PricingManager';
 import { CouponManager } from './CouponManager';
 import { NotificationManager } from './NotificationManager';
+import { ReviewManager } from './ReviewManager';
 
-type View = 'dealers' | 'orders' | 'pricing' | 'coupons' | 'notifications';
+type View = 'dealers' | 'orders' | 'pricing' | 'coupons' | 'notifications' | 'reviews';
 
 export function AdminDashboard() {
   const [currentView, setCurrentView] = useState<View>('dealers');
@@ -78,6 +79,17 @@ export function AdminDashboard() {
                   <Bell className="w-4 h-4 inline mr-2" />
                   Notifications
                 </button>
+                <button
+                  onClick={() => setCurrentView('reviews')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    currentView === 'reviews'
+                      ? 'bg-amber-600 text-white'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <Star className="w-4 h-4 inline mr-2" />
+                  Reviews
+                </button>
               </div>
             </div>
 
@@ -98,6 +110,7 @@ export function AdminDashboard() {
         {currentView === 'pricing' && <PricingManager />}
         {currentView === 'coupons' && <CouponManager />}
         {currentView === 'notifications' && <NotificationManager />}
+        {currentView === 'reviews' && <ReviewManager />}
       </main>
     </div>
   );

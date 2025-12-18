@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ShoppingCart, Package, Home, User, ArrowLeft, Menu, X } from 'lucide-react';
+import { ShoppingCart, Package, Home, User, ArrowLeft, Menu, X, LogOut } from 'lucide-react';
 import { ProductCatalogue } from './ProductCatalogue';
 import { Cart } from './Cart';
 import { OrderHistory } from './OrderHistory';
 import { DealerProfile } from './DealerProfile';
 import { DealerProfile as DealerProfileType } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 type View = 'home' | 'products' | 'cart' | 'orders' | 'profile';
 
@@ -25,6 +26,7 @@ const mockDealerProfile: DealerProfileType = {
 };
 
 export function DealerDashboard() {
+  const { signOut } = useAuth();
   const [currentView, setCurrentView] = useState<View>('home');
   const [dealerProfile] = useState<DealerProfileType | null>(mockDealerProfile);
   const [cartCount, setCartCount] = useState(0);
@@ -138,6 +140,13 @@ export function DealerDashboard() {
               >
                 <User className="w-5 h-5" />
                 <span className="font-medium">Profile</span>
+              </button>
+              <button
+                onClick={signOut}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="font-medium">Logout</span>
               </button>
             </div>
           </div>
