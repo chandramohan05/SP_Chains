@@ -33,6 +33,15 @@ export interface Product {
   stock_quantity: number;
   making_charges: number;
   is_active: boolean;
+  design_no?: string;
+  variant?: string;
+  weight_per_inch: number;
+  wastage_percent: number;
+  purity_percent: number;
+  baby_or_big_size?: 'baby' | 'big';
+  size_range_start: number;
+  size_range_end: number;
+  size_increment: number;
   created_at: string;
   updated_at: string;
 }
@@ -58,8 +67,10 @@ export interface Order {
   subtotal: number;
   discount_amount: number;
   final_amount: number;
-  payment_mode: 'online' | 'credit';
+  payment_mode: 'online' | 'credit' | 'rtgs' | 'silver_settlement';
   coupon_code?: string;
+  pure_payable: number;
+  delivery_method?: 'in_person' | 'dealer_delivery';
   approved_by?: string;
   approved_at?: string;
   rejected_reason?: string;
@@ -125,4 +136,80 @@ export interface CartItem {
   product: Product;
   size: string;
   quantity: number;
+}
+
+export interface ProductImage {
+  id: string;
+  product_id: string;
+  image_url: string;
+  display_order: number;
+  is_primary: boolean;
+  created_at: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  user_id: string;
+  subject: string;
+  description: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TicketResponse {
+  id: string;
+  ticket_id: string;
+  user_id: string;
+  message: string;
+  is_staff_response: boolean;
+  created_at: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  user_id: string;
+  activity_type: string;
+  entity_type?: string;
+  entity_id?: string;
+  metadata?: Record<string, unknown>;
+  duration_seconds: number;
+  created_at: string;
+}
+
+export interface DealerInventory {
+  id: string;
+  dealer_id: string;
+  product_id: string;
+  size: number;
+  weight: number;
+  quantity: number;
+  last_synced?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeliveryTracking {
+  id: string;
+  order_id: string;
+  status: string;
+  delivery_method?: 'in_person' | 'dealer_delivery';
+  delivered_by?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Banner {
+  id: string;
+  title: string;
+  description?: string;
+  image_url: string;
+  link_url?: string;
+  display_order: number;
+  is_active: boolean;
+  start_date: string;
+  end_date?: string;
+  created_at: string;
 }

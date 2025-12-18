@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { ShoppingCart, Package, Home, User, ArrowLeft, Menu, X, LogOut } from 'lucide-react';
+import { ShoppingCart, Package, Home, User, ArrowLeft, Menu, X, LogOut, MessageSquare, Warehouse } from 'lucide-react';
 import { ProductCatalogue } from './ProductCatalogue';
 import { Cart } from './Cart';
 import { OrderHistory } from './OrderHistory';
 import { DealerProfile } from './DealerProfile';
+import SupportTickets from './SupportTickets';
+import InventoryManager from './InventoryManager';
+import BannerCarousel from './BannerCarousel';
 import { DealerProfile as DealerProfileType } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 
-type View = 'home' | 'products' | 'cart' | 'orders' | 'profile';
+type View = 'home' | 'products' | 'cart' | 'orders' | 'profile' | 'support' | 'inventory';
 
 const mockDealerProfile: DealerProfileType = {
   id: '1',
@@ -48,6 +51,8 @@ export function DealerDashboard() {
       case 'cart': return 'Cart';
       case 'orders': return 'Orders';
       case 'profile': return 'Profile';
+      case 'support': return 'Support';
+      case 'inventory': return 'My Inventory';
       default: return 'SP Chains';
     }
   };
@@ -142,6 +147,24 @@ export function DealerDashboard() {
                 <span className="font-medium">Profile</span>
               </button>
               <button
+                onClick={() => navigateTo('inventory')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  currentView === 'inventory' ? 'bg-amber-50 text-amber-700' : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <Warehouse className="w-5 h-5" />
+                <span className="font-medium">My Inventory</span>
+              </button>
+              <button
+                onClick={() => navigateTo('support')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  currentView === 'support' ? 'bg-amber-50 text-amber-700' : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <MessageSquare className="w-5 h-5" />
+                <span className="font-medium">Support</span>
+              </button>
+              <button
                 onClick={signOut}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
               >
@@ -159,6 +182,8 @@ export function DealerDashboard() {
         {currentView === 'cart' && <Cart onCartUpdate={updateCartCount} />}
         {currentView === 'orders' && <OrderHistory />}
         {currentView === 'profile' && dealerProfile && <DealerProfile profile={dealerProfile} />}
+        {currentView === 'support' && <SupportTickets />}
+        {currentView === 'inventory' && <InventoryManager />}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 md:hidden z-20 safe-area-inset-bottom">
@@ -217,6 +242,8 @@ interface DealerHomeProps {
 function DealerHome({ onNavigate, profile }: DealerHomeProps) {
   return (
     <div className="space-y-4">
+      <BannerCarousel />
+
       <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-6 text-white shadow-lg">
         <h2 className="text-2xl font-bold mb-2">Welcome back!</h2>
         <p className="text-amber-100 mb-4">{profile?.business_name}</p>

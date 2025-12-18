@@ -36,7 +36,8 @@ export function Cart({ onCartUpdate }: CartProps) {
   const [dealerProfile] = useState<DealerProfile | null>(mockDealerProfile);
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount_type: string; discount_value: number } | null>(null);
-  const [paymentMode, setPaymentMode] = useState<'online' | 'credit'>('online');
+  const [paymentMode, setPaymentMode] = useState<'online' | 'credit' | 'rtgs' | 'silver_settlement'>('online');
+  const [deliveryMethod, setDeliveryMethod] = useState<'in_person' | 'dealer_delivery'>('in_person');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -235,17 +236,36 @@ export function Cart({ onCartUpdate }: CartProps) {
             <select
               value={paymentMode}
               onChange={(e) => {
-                setPaymentMode(e.target.value as 'online' | 'credit');
+                setPaymentMode(e.target.value as 'online' | 'credit' | 'rtgs' | 'silver_settlement');
                 setAppliedCoupon(null);
               }}
               className="w-full px-3 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base"
             >
               <option value="online">Online Payment</option>
+              <option value="rtgs">RTGS (Advance Payment)</option>
+              <option value="silver_settlement">Silver Settlement</option>
               <option value="credit">Dealer Credit</option>
             </select>
             {paymentMode === 'credit' && dealerProfile && (
               <p className="text-xs text-slate-500 mt-2">
                 Available: ₹{(dealerProfile.credit_limit - dealerProfile.credit_used).toLocaleString('en-IN')}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Delivery Method</label>
+            <select
+              value={deliveryMethod}
+              onChange={(e) => setDeliveryMethod(e.target.value as 'in_person' | 'dealer_delivery')}
+              className="w-full px-3 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base"
+            >
+              <option value="in_person">In-Person Delivery</option>
+              <option value="dealer_delivery">Dealer Delivery</option>
+            </select>
+            {deliveryMethod === 'dealer_delivery' && (
+              <p className="text-xs text-slate-500 mt-2">
+                Available for RTGS, Silver Payment & Dealer Credit orders
               </p>
             )}
           </div>
