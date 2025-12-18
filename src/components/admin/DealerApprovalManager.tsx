@@ -18,22 +18,48 @@ export function DealerApprovalManager() {
   const fetchDealers = async () => {
     try {
       setLoading(true);
-      let query = supabase
+
+      let profileQuery = supabase
         .from('dealer_profiles')
-        .select(`
-          *,
-          user:users(*)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {
-        query = query.eq('approval_status', filter);
+        profileQuery = profileQuery.eq('approval_status', filter);
       }
 
-      const { data, error } = await query;
+      const { data: profiles, error: profileError } = await profileQuery;
 
-      if (error) throw error;
-      setDealers(data || []);
+      if (profileError) throw profileError;
+
+      if (!profiles || profiles.length === 0) {
+        setDealers([]);
+        return;
+      }
+
+      const userIds = profiles.map(p => p.user_id);
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('*')
+        .in('id', userIds);
+
+      if (usersError) throw usersError;
+
+      const usersMap = new Map(users?.map(u => [u.id, u]) || []);
+
+      const dealersWithUsers = profiles.map(profile => ({
+        ...profile,
+        user: usersMap.get(profile.user_id) || {
+          id: profile.user_id,
+          mobile_number: 'Unknown',
+          role: 'dealer',
+          is_active: false,
+          created_at: profile.created_at,
+          updated_at: profile.updated_at
+        }
+      }));
+
+      setDealers(dealersWithUsers);
     } catch (error: unknown) {
       console.error('Error fetching dealers:', error);
       alert('Failed to fetch dealers');
