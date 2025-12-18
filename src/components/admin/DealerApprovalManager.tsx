@@ -1,80 +1,114 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 import { DealerProfile, User } from '../../types';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 type DealerWithUser = DealerProfile & { user: User };
 
-const mockDealers: DealerWithUser[] = [
-  {
-    id: '1',
-    user_id: 'user1',
-    business_name: 'Silver Star Jewellers',
-    gst_number: '27AABCU9603R1ZX',
-    pan_number: 'AABCU9603R',
-    approval_status: 'pending',
-    credit_limit: 0,
-    credit_used: 0,
-    approved_by: null,
-    approved_at: null,
-    rejected_reason: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    user: {
-      id: 'user1',
-      mobile_number: '9876543210',
-      role: 'dealer',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-  },
-  {
-    id: '2',
-    user_id: 'user2',
-    business_name: 'Gold House Jewellery',
-    gst_number: '29AABCU9604R2ZY',
-    pan_number: 'AABCU9604S',
-    approval_status: 'approved',
-    credit_limit: 150000,
-    credit_used: 25000,
-    approved_by: 'admin1',
-    approved_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    rejected_reason: null,
-    created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    user: {
-      id: 'user2',
-      mobile_number: '9876543211',
-      role: 'dealer',
-      created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-    }
-  }
-];
-
 export function DealerApprovalManager() {
-  const [dealers, setDealers] = useState<DealerWithUser[]>(mockDealers);
+  const { user: currentUser } = useAuth();
+  const [dealers, setDealers] = useState<DealerWithUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const approveDealer = (dealerId: string, creditLimit: number) => {
-    setProcessingId(dealerId);
-    setTimeout(() => {
-      setDealers(dealers.map(d =>
-        d.id === dealerId ? { ...d, approval_status: 'approved' as const, credit_limit: creditLimit } : d
-      ));
-      setProcessingId(null);
-    }, 500);
+  useEffect(() => {
+    fetchDealers();
+  }, [filter]);
+
+  const fetchDealers = async () => {
+    try {
+      setLoading(true);
+      let query = supabase
+        .from('dealer_profiles')
+        .select(`
+          *,
+          user:users(*)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (filter !== 'all') {
+        query = query.eq('approval_status', filter);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setDealers(data || []);
+    } catch (error: unknown) {
+      console.error('Error fetching dealers:', error);
+      alert('Failed to fetch dealers');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const rejectDealer = (dealerId: string, reason: string) => {
+  const approveDealer = async (dealerId: string, creditLimit: number) => {
     setProcessingId(dealerId);
-    setTimeout(() => {
-      setDealers(dealers.map(d =>
-        d.id === dealerId ? { ...d, approval_status: 'rejected' as const, rejected_reason: reason } : d
-      ));
+    try {
+      const { error } = await supabase
+        .from('dealer_profiles')
+        .update({
+          approval_status: 'approved',
+          credit_limit: creditLimit,
+          approved_by: currentUser?.id,
+          approved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', dealerId);
+
+      if (error) throw error;
+
+      const dealer = dealers.find(d => d.id === dealerId);
+      if (dealer) {
+        await supabase
+          .from('users')
+          .update({ is_active: true })
+          .eq('id', dealer.user_id);
+      }
+
+      alert('Dealer approved successfully');
+      fetchDealers();
+    } catch (error: unknown) {
+      console.error('Error approving dealer:', error);
+      alert('Failed to approve dealer');
+    } finally {
       setProcessingId(null);
-    }, 500);
+    }
   };
+
+  const rejectDealer = async (dealerId: string, reason: string) => {
+    setProcessingId(dealerId);
+    try {
+      const { error } = await supabase
+        .from('dealer_profiles')
+        .update({
+          approval_status: 'rejected',
+          rejected_reason: reason,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', dealerId);
+
+      if (error) throw error;
+
+      alert('Dealer rejected');
+      fetchDealers();
+    } catch (error: unknown) {
+      console.error('Error rejecting dealer:', error);
+      alert('Failed to reject dealer');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -120,8 +154,8 @@ export function DealerApprovalManager() {
 
 interface DealerCardProps {
   dealer: DealerWithUser;
-  onApprove: (dealerId: string, userId: string, creditLimit: number) => void;
-  onReject: (dealerId: string, userId: string, reason: string) => void;
+  onApprove: (dealerId: string, creditLimit: number) => void;
+  onReject: (dealerId: string, reason: string) => void;
   processing: boolean;
 }
 
@@ -132,13 +166,13 @@ function DealerCard({ dealer, onApprove, onReject, processing }: DealerCardProps
   const [rejectionReason, setRejectionReason] = useState('');
 
   const handleApprove = () => {
-    onApprove(dealer.id, dealer.user_id, creditLimit);
+    onApprove(dealer.id, creditLimit);
     setShowApproveForm(false);
   };
 
   const handleReject = () => {
     if (rejectionReason.trim()) {
-      onReject(dealer.id, dealer.user_id, rejectionReason);
+      onReject(dealer.id, rejectionReason);
       setShowRejectForm(false);
       setRejectionReason('');
     }
