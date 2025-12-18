@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { DealerProfile, User } from '../../types';
-import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react';
 
 type DealerWithUser = DealerProfile & { user: User };
 
@@ -129,6 +129,29 @@ export function DealerApprovalManager() {
     }
   };
 
+  const updateCreditLimit = async (dealerId: string, newCreditLimit: number) => {
+    setProcessingId(dealerId);
+    try {
+      const { error } = await supabase
+        .from('dealer_profiles')
+        .update({
+          credit_limit: newCreditLimit,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', dealerId);
+
+      if (error) throw error;
+
+      alert('Credit limit updated successfully');
+      fetchDealers();
+    } catch (error: unknown) {
+      console.error('Error updating credit limit:', error);
+      alert('Failed to update credit limit');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -170,6 +193,7 @@ export function DealerApprovalManager() {
               dealer={dealer}
               onApprove={approveDealer}
               onReject={rejectDealer}
+              onUpdateCredit={updateCreditLimit}
               processing={processingId === dealer.id}
             />
           ))}
@@ -183,13 +207,16 @@ interface DealerCardProps {
   dealer: DealerWithUser;
   onApprove: (dealerId: string, creditLimit: number) => void;
   onReject: (dealerId: string, reason: string) => void;
+  onUpdateCredit: (dealerId: string, newCreditLimit: number) => void;
   processing: boolean;
 }
 
-function DealerCard({ dealer, onApprove, onReject, processing }: DealerCardProps) {
+function DealerCard({ dealer, onApprove, onReject, onUpdateCredit, processing }: DealerCardProps) {
   const [showApproveForm, setShowApproveForm] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
+  const [showEditCreditForm, setShowEditCreditForm] = useState(false);
   const [creditLimit, setCreditLimit] = useState(50000);
+  const [newCreditLimit, setNewCreditLimit] = useState(dealer.credit_limit);
   const [rejectionReason, setRejectionReason] = useState('');
 
   const handleApprove = () => {
@@ -203,6 +230,11 @@ function DealerCard({ dealer, onApprove, onReject, processing }: DealerCardProps
       setShowRejectForm(false);
       setRejectionReason('');
     }
+  };
+
+  const handleUpdateCredit = () => {
+    onUpdateCredit(dealer.id, newCreditLimit);
+    setShowEditCreditForm(false);
   };
 
   const getStatusIcon = () => {
@@ -262,6 +294,58 @@ function DealerCard({ dealer, onApprove, onReject, processing }: DealerCardProps
             <span className="font-medium">Rejection Reason: </span>
             {dealer.rejected_reason}
           </p>
+        </div>
+      )}
+
+      {dealer.approval_status === 'approved' && (
+        <div className="space-y-3">
+          {showEditCreditForm ? (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Update Credit Limit (₹)
+                </label>
+                <input
+                  type="number"
+                  value={newCreditLimit}
+                  onChange={(e) => setNewCreditLimit(parseFloat(e.target.value) || 0)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  min="0"
+                  step="10000"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Current: ₹{dealer.credit_limit.toLocaleString('en-IN')} | Used: ₹{dealer.credit_used.toLocaleString('en-IN')}
+                </p>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleUpdateCredit}
+                  disabled={processing}
+                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Update Credit Limit
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEditCreditForm(false);
+                    setNewCreditLimit(dealer.credit_limit);
+                  }}
+                  className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowEditCreditForm(true)}
+              disabled={processing}
+              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              <DollarSign className="w-4 h-4 inline mr-2" />
+              Manage Credit Limit
+            </button>
+          )}
         </div>
       )}
 

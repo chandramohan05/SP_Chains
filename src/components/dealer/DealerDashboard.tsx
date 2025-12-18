@@ -98,7 +98,7 @@ export function DealerDashboard() {
               </div>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors hidden md:block"
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                 aria-label="Menu"
               >
                 {menuOpen ? <X className="w-5 h-5 text-slate-700" /> : <Menu className="w-5 h-5 text-slate-700" />}
@@ -108,7 +108,7 @@ export function DealerDashboard() {
         </div>
 
         {menuOpen && (
-          <div className="border-t border-slate-200 bg-white md:block hidden">
+          <div className="border-t border-slate-200 bg-white">
             <div className="px-4 py-2 space-y-1">
               <button
                 onClick={() => navigateTo('home')}
@@ -190,43 +190,53 @@ export function DealerDashboard() {
         <div className="flex items-center justify-around py-2">
           <button
             onClick={() => navigateTo('home')}
-            className={`flex flex-col items-center justify-center py-2 px-4 flex-1 transition-colors ${
+            className={`flex flex-col items-center justify-center py-2 px-3 flex-1 transition-colors ${
               currentView === 'home' ? 'text-amber-600' : 'text-slate-500'
             }`}
             aria-label="Home"
           >
-            <Home className="w-6 h-6 mb-1" />
+            <Home className="w-5 h-5 mb-1" />
             <span className="text-xs font-medium">Home</span>
           </button>
           <button
             onClick={() => navigateTo('products')}
-            className={`flex flex-col items-center justify-center py-2 px-4 flex-1 transition-colors ${
+            className={`flex flex-col items-center justify-center py-2 px-3 flex-1 transition-colors ${
               currentView === 'products' ? 'text-amber-600' : 'text-slate-500'
             }`}
             aria-label="Products"
           >
-            <Package className="w-6 h-6 mb-1" />
+            <Package className="w-5 h-5 mb-1" />
             <span className="text-xs font-medium">Products</span>
           </button>
           <button
             onClick={() => navigateTo('orders')}
-            className={`flex flex-col items-center justify-center py-2 px-4 flex-1 transition-colors ${
+            className={`flex flex-col items-center justify-center py-2 px-3 flex-1 transition-colors ${
               currentView === 'orders' ? 'text-amber-600' : 'text-slate-500'
             }`}
             aria-label="Orders"
           >
-            <Package className="w-6 h-6 mb-1" />
+            <Package className="w-5 h-5 mb-1" />
             <span className="text-xs font-medium">Orders</span>
           </button>
           <button
-            onClick={() => navigateTo('profile')}
-            className={`flex flex-col items-center justify-center py-2 px-4 flex-1 transition-colors ${
-              currentView === 'profile' ? 'text-amber-600' : 'text-slate-500'
+            onClick={() => navigateTo('inventory')}
+            className={`flex flex-col items-center justify-center py-2 px-3 flex-1 transition-colors ${
+              currentView === 'inventory' ? 'text-amber-600' : 'text-slate-500'
             }`}
-            aria-label="Profile"
+            aria-label="Inventory"
           >
-            <User className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Profile</span>
+            <Warehouse className="w-5 h-5 mb-1" />
+            <span className="text-xs font-medium">Inventory</span>
+          </button>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className={`flex flex-col items-center justify-center py-2 px-3 flex-1 transition-colors ${
+              menuOpen ? 'text-amber-600' : 'text-slate-500'
+            }`}
+            aria-label="More"
+          >
+            <Menu className="w-5 h-5 mb-1" />
+            <span className="text-xs font-medium">More</span>
           </button>
         </div>
       </nav>
