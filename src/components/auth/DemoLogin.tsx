@@ -1,12 +1,37 @@
+import { useState } from 'react';
 import { LogIn, User, Shield } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 interface DemoLoginProps {
   onLogin: (role: 'admin' | 'dealer') => void;
 }
 
 export function DemoLogin({ onLogin }: DemoLoginProps) {
-  const loginAs = (role: 'admin' | 'dealer') => {
-    onLogin(role);
+  const [loading, setLoading] = useState(false);
+
+  const loginAs = async (role: 'admin' | 'dealer') => {
+    setLoading(true);
+    try {
+      const email = role === 'dealer' ? '8888888888@spchains.internal' : '9999999999@spchains.internal';
+      const password = 'demo123456';
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Demo login error:', error);
+        alert('Demo login failed. Please try again.');
+      } else {
+        onLogin(role);
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      alert('An error occurred during login.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,11 +84,12 @@ export function DemoLogin({ onLogin }: DemoLoginProps) {
 
               <button
                 onClick={() => loginAs('admin')}
-                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white py-4 rounded-xl font-semibold hover:from-amber-600 hover:to-amber-700 transition-all transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white py-4 rounded-xl font-semibold hover:from-amber-600 hover:to-amber-700 transition-all transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="flex items-center justify-center">
                   <Shield className="w-5 h-5 mr-2" />
-                  Login as Admin
+                  {loading ? 'Signing in...' : 'Login as Admin'}
                 </div>
               </button>
             </div>
@@ -108,11 +134,12 @@ export function DemoLogin({ onLogin }: DemoLoginProps) {
 
               <button
                 onClick={() => loginAs('dealer')}
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="flex items-center justify-center">
                   <User className="w-5 h-5 mr-2" />
-                  Login as Dealer
+                  {loading ? 'Signing in...' : 'Login as Dealer'}
                 </div>
               </button>
             </div>
