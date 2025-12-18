@@ -1,0 +1,293 @@
+Project Name
+
+SP Chains – B2B Silver Trading Application
+
+Project Overview
+
+Build a B2B Silver Trading Web Application for SP Chains that allows registered dealers to browse silver products, view live MCX-based pricing, calculate weight and amount, place orders, apply coupons, select payment modes, and submit reviews.
+The system must include an Admin Panel and integrate with an ERP system via APIs.
+
+Technology Stack (Strict)
+
+Frontend: React (Web App)
+
+Admin Panel: React
+
+Backend: Python (FastAPI preferred)
+
+Database: PostgreSQL
+
+Auth: OTP + JWT
+
+ERP Integration: REST APIs
+
+Notifications: Firebase (Push) + Email
+
+Hosting: Cloud/VPS (Docker ready)
+
+User Roles
+
+Dealer (User)
+
+Admin
+
+ERP (External System – API only)
+
+Core Functional Modules
+1. Dealer Registration & Approval
+
+Dealer Flow
+
+Register using:
+
+Business Name
+
+GST Number
+
+PAN Number
+
+Mobile Number
+
+Validate inputs (format + uniqueness)
+
+Send OTP for mobile verification
+
+Submit registration request
+
+Admin Flow
+
+View pending dealer registrations
+
+Approve / Reject dealer
+
+Approved dealers can login
+
+2. Authentication
+
+Mobile number + OTP login
+
+JWT-based authentication
+
+Role-based access control
+
+Session expiry handling
+
+3. Product Catalogue (ERP Driven)
+
+Fetch product list from ERP
+
+Product fields:
+
+Product ID
+
+Name
+
+Category
+
+Available Sizes
+
+Base Weight
+
+Stock Quantity
+
+Making Charges
+
+Filters:
+
+Category
+
+Size
+
+Stock availability
+
+4. Pricing Engine
+
+Fetch MCX Silver Rate from ERP
+
+Apply pricing logic:
+
+Net Rate = MCX + Premium
+
+Wholesale Rate = Net Rate
+
+Retail Rate = Wholesale + 1%
+
+Pricing must be real-time & accurate
+
+Admin can configure premium %
+
+5. Checkout – Weight & Amount Calculation
+
+Dealer selects:
+
+Product
+
+Size
+
+Quantity
+
+System calculates:
+
+Gross Weight
+
+Pure Weight
+
+Wastage
+
+Making Charges
+
+Final Amount Formula:
+
+Final Amount = (Pure Weight × Rate) + Making Charges
+
+
+Display calculation breakdown clearly
+
+6. Payment Mode & Dealer Credit
+
+Payment modes:
+
+Online
+
+Dealer Credit
+
+Dealer credit flow:
+
+Validate credit availability via ERP
+
+Approve or reject credit
+
+Save payment status with order
+
+7. Coupon Engine
+
+Apply coupon code
+
+Validate coupon rules:
+
+Minimum quantity
+
+Payment mode
+
+Expiry date
+
+Accept or reject coupon
+
+Apply discount if valid
+
+8. Order Management
+
+Confirm order from dealer
+
+Save order in backend
+
+Lock stock in ERP
+
+Order statuses:
+
+Placed
+
+Approved
+
+Rejected
+
+Completed
+
+Display order history to dealer
+
+9. Notifications System
+
+Admin can create notifications:
+
+Offers
+
+Alerts
+
+GST updates
+
+Notification delivery:
+
+Push notifications
+
+Email
+
+In-app alerts
+
+10. Review & Rating System
+
+Dealer can submit:
+
+Rating (1–5)
+
+Review text
+
+Save review to ERP
+
+Update product rating
+
+Admin Panel Features
+
+Dealer approval management
+
+Product view (read-only from ERP)
+
+Pricing premium configuration
+
+Coupon creation & rules
+
+Notification publishing
+
+Order monitoring dashboard
+
+Database Design (High Level)
+Tables
+
+users
+
+dealer_profiles
+
+otp_logs
+
+products (cached from ERP)
+
+orders
+
+order_items
+
+payments
+
+coupons
+
+notifications
+
+reviews
+
+API Requirements
+
+REST APIs only
+
+Secure with JWT
+
+ERP API wrapper layer
+
+Proper error handling
+
+Logging for:
+
+Pricing
+
+Orders
+
+Payments
+
+Non-Functional Requirements
+
+High accuracy for pricing & weight
+
+ERP failure handling
+
+Secure authentication
+
+Scalable architecture
+
+Clean React UI (B2B focused)
