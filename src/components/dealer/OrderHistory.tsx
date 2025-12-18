@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Order, OrderItem, Product } from '../../types';
-import { Package, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Order, OrderItem, Product, Review } from '../../types';
+import { Package, Clock, CheckCircle, XCircle, Star } from 'lucide-react';
+import { ReviewForm } from './ReviewForm';
 
 type OrderWithItems = Order & {
   items: (OrderItem & { product: Product })[];
@@ -11,7 +12,7 @@ const mockOrders: OrderWithItems[] = [
     id: '1',
     order_number: 'ORD1703001',
     dealer_id: '1',
-    status: 'approved',
+    status: 'completed',
     gross_weight: 25.5,
     pure_weight: 24.2,
     wastage: 1.3,
@@ -107,6 +108,34 @@ const mockOrders: OrderWithItems[] = [
 
 export function OrderHistory() {
   const [orders] = useState<OrderWithItems[]>(mockOrders);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [selectedReviewItem, setSelectedReviewItem] = useState<{
+    product: Product;
+    orderId: string;
+  } | null>(null);
+
+  const handleSubmitReview = async (rating: number, reviewText: string) => {
+    if (!selectedReviewItem) return;
+
+    const newReview: Review = {
+      id: Math.random().toString(36).substr(2, 9),
+      product_id: selectedReviewItem.product.id,
+      dealer_id: '1',
+      order_id: selectedReviewItem.orderId,
+      rating,
+      review_text: reviewText,
+      is_synced_to_erp: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    setReviews([...reviews, newReview]);
+    setSelectedReviewItem(null);
+  };
+
+  const hasReview = (productId: string, orderId: string) => {
+    return reviews.some(r => r.product_id === productId && r.order_id === orderId);
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -192,14 +221,31 @@ export function OrderHistory() {
           <div className="p-4">
             <div className="space-y-3 mb-4">
               {order.items.map((item) => (
-                <div key={item.id} className="flex justify-between items-start py-2 border-b border-slate-100 last:border-0">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-900">{item.product.name}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {item.size} × {item.quantity} | {item.total_weight}g
-                    </p>
+                <div key={item.id} className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-slate-900">{item.product.name}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {item.size} × {item.quantity} | {item.total_weight}g
+                      </p>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-900">₹{item.line_total.toFixed(2)}</p>
                   </div>
-                  <p className="text-sm font-semibold text-slate-900">₹{item.line_total.toFixed(2)}</p>
+                  {order.status === 'completed' && !hasReview(item.product.id, order.id) && (
+                    <button
+                      onClick={() => setSelectedReviewItem({ product: item.product, orderId: order.id })}
+                      className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-medium rounded-lg hover:bg-amber-100 transition-colors"
+                    >
+                      <Star className="w-3.5 h-3.5" />
+                      Write Review
+                    </button>
+                  )}
+                  {hasReview(item.product.id, order.id) && (
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-green-600">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      Review submitted
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -229,6 +275,15 @@ export function OrderHistory() {
           </div>
         </div>
       ))}
+
+      {selectedReviewItem && (
+        <ReviewForm
+          product={selectedReviewItem.product}
+          orderId={selectedReviewItem.orderId}
+          onSubmit={handleSubmitReview}
+          onClose={() => setSelectedReviewItem(null)}
+        />
+      )}
     </div>
   );
 }

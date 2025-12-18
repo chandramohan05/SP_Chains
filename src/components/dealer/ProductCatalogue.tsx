@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Product, PricingConfig, CartItem } from '../../types';
-import { Search, Filter, Plus } from 'lucide-react';
+import { Product, PricingConfig, CartItem, Review } from '../../types';
+import { Search, Filter, Plus, Star } from 'lucide-react';
+import { ProductReviews } from './ProductReviews';
 
 const mockProducts: Product[] = [
   {
@@ -85,6 +86,64 @@ const mockPricing: PricingConfig = {
   updated_at: new Date().toISOString()
 };
 
+const mockReviews: Review[] = [
+  {
+    id: '1',
+    product_id: '1',
+    dealer_id: '2',
+    order_id: 'ORD001',
+    rating: 5,
+    review_text: 'Excellent quality silver chain. Very happy with the purchase. The finish is perfect and the weight is accurate.',
+    is_synced_to_erp: true,
+    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: '2',
+    product_id: '1',
+    dealer_id: '3',
+    order_id: 'ORD002',
+    rating: 4,
+    review_text: 'Good product. Customers love it. Could have better packaging.',
+    is_synced_to_erp: true,
+    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: '3',
+    product_id: '3',
+    dealer_id: '4',
+    order_id: 'ORD003',
+    rating: 5,
+    review_text: 'Best silver rings in the market. My customers are very satisfied.',
+    is_synced_to_erp: true,
+    created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: '4',
+    product_id: '2',
+    dealer_id: '5',
+    order_id: 'ORD004',
+    rating: 4,
+    review_text: 'Beautiful bracelet design. Good weight and finish.',
+    is_synced_to_erp: true,
+    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: '5',
+    product_id: '1',
+    dealer_id: '6',
+    order_id: 'ORD005',
+    rating: 5,
+    review_text: 'Amazing quality and fast delivery.',
+    is_synced_to_erp: true,
+    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+  }
+];
+
 interface ProductCatalogueProps {
   onCartUpdate: (count: number) => void;
 }
@@ -92,6 +151,7 @@ interface ProductCatalogueProps {
 export function ProductCatalogue({ onCartUpdate }: ProductCatalogueProps) {
   const [products] = useState<Product[]>(mockProducts);
   const [pricing] = useState<PricingConfig | null>(mockPricing);
+  const [reviews] = useState<Review[]>(mockReviews);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -189,6 +249,7 @@ export function ProductCatalogue({ onCartUpdate }: ProductCatalogueProps) {
             key={product.id}
             product={product}
             rate={calculateRetailRate()}
+            reviews={reviews}
             onAddToCart={addToCart}
           />
         ))}
@@ -206,12 +267,19 @@ export function ProductCatalogue({ onCartUpdate }: ProductCatalogueProps) {
 interface ProductCardProps {
   product: Product;
   rate: number;
+  reviews: Review[];
   onAddToCart: (product: Product, size: string, quantity: number) => void;
 }
 
-function ProductCard({ product, rate, onAddToCart }: ProductCardProps) {
+function ProductCard({ product, rate, reviews, onAddToCart }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [showReviews, setShowReviews] = useState(false);
+
+  const productReviews = reviews.filter(r => r.product_id === product.id);
+  const averageRating = productReviews.length > 0
+    ? (productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length).toFixed(1)
+    : null;
 
   useEffect(() => {
     if (product.available_sizes.length > 0) {
@@ -227,12 +295,22 @@ function ProductCard({ product, rate, onAddToCart }: ProductCardProps) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden active:scale-[0.98] transition-transform">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div className="p-4">
         <div className="flex justify-between items-start mb-3">
-          <div>
+          <div className="flex-1 min-w-0">
             <h3 className="text-base font-semibold text-slate-900">{product.name}</h3>
             <p className="text-xs text-slate-500">{product.category}</p>
+            {averageRating && (
+              <button
+                onClick={() => setShowReviews(!showReviews)}
+                className="flex items-center gap-1 mt-1 text-xs text-amber-600 hover:text-amber-700 transition-colors"
+              >
+                <Star className="w-3.5 h-3.5 fill-amber-400" />
+                <span className="font-medium">{averageRating}</span>
+                <span className="text-slate-500">({productReviews.length})</span>
+              </button>
+            )}
           </div>
           <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${
             product.stock_quantity > 0
@@ -297,6 +375,21 @@ function ProductCard({ product, rate, onAddToCart }: ProductCardProps) {
             Add to Cart
           </button>
         </div>
+
+        {showReviews && (
+          <div className="mt-4 pt-4 border-t border-slate-200">
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="text-sm font-semibold text-slate-900">Customer Reviews</h4>
+              <button
+                onClick={() => setShowReviews(false)}
+                className="text-xs text-slate-500 hover:text-slate-700"
+              >
+                Hide
+              </button>
+            </div>
+            <ProductReviews productId={product.id} reviews={reviews} />
+          </div>
+        )}
       </div>
     </div>
   );
