@@ -1,23 +1,16 @@
-/*
-  # Add Sample Data for Testing
+/* =========================================================
+   Sample Data for Testing (MySQL Version)
+   Converted from Supabase add_sample_data_for_testing.sql
+   ========================================================= */
 
-  ## Sample Data Created
-  1. Sample banners for testing the banner system
-  2. Sample pricing configuration
-  3. Sample products with complete information
-  
-  ## Note
-  - This is test data for demonstration purposes
-  - Users are already created via demo login
-*/
+SET FOREIGN_KEY_CHECKS = 0;
 
--- Insert sample pricing configuration
-INSERT INTO pricing_config (mcx_rate, premium_percentage)
-VALUES (75.50, 2.5)
-ON CONFLICT DO NOTHING;
+/* ================= PRICING CONFIG ================= */
+INSERT IGNORE INTO pricing_config (mcx_rate, premium_percentage)
+VALUES (75.50, 2.5);
 
--- Insert sample products with new fields
-INSERT INTO products (
+/* ================= PRODUCTS ================= */
+INSERT IGNORE INTO products (
   erp_product_id,
   name,
   category,
@@ -41,10 +34,10 @@ INSERT INTO products (
   'Silver Chain 24 inch',
   'Chains',
   15.5,
-  '["22", "24", "26"]'::jsonb,
+  JSON_ARRAY('22','24','26'),
   50,
   250,
-  true,
+  TRUE,
   'CH-001',
   'Classic',
   2.5,
@@ -60,10 +53,10 @@ INSERT INTO products (
   'Silver Bracelet',
   'Bracelets',
   12.3,
-  '["S", "M", "L"]'::jsonb,
+  JSON_ARRAY('S','M','L'),
   30,
   200,
-  true,
+  TRUE,
   'BR-001',
   'Designer',
   1.8,
@@ -79,10 +72,10 @@ INSERT INTO products (
   'Silver Ring',
   'Rings',
   8.5,
-  '["6", "7", "8", "9"]'::jsonb,
+  JSON_ARRAY('6','7','8','9'),
   100,
   150,
-  true,
+  TRUE,
   'RG-001',
   'Premium',
   0.5,
@@ -92,11 +85,10 @@ INSERT INTO products (
   4.0,
   10.0,
   0.25
-)
-ON CONFLICT (erp_product_id) DO NOTHING;
+);
 
--- Insert sample banners
-INSERT INTO banners (
+/* ================= BANNERS ================= */
+INSERT IGNORE INTO banners (
   title,
   description,
   image_url,
@@ -112,9 +104,9 @@ INSERT INTO banners (
   'https://images.pexels.com/photos/1191531/pexels-photo-1191531.jpeg?auto=compress&cs=tinysrgb&w=1200',
   NULL,
   1,
-  true,
-  now(),
-  now() + interval '30 days'
+  TRUE,
+  NOW(),
+  NOW() + INTERVAL 30 DAY
 ),
 (
   'Premium Collection Launch',
@@ -122,9 +114,9 @@ INSERT INTO banners (
   'https://images.pexels.com/photos/1454171/pexels-photo-1454171.jpeg?auto=compress&cs=tinysrgb&w=1200',
   NULL,
   2,
-  true,
-  now(),
-  now() + interval '60 days'
+  TRUE,
+  NOW(),
+  NOW() + INTERVAL 60 DAY
 ),
 (
   'Bulk Order Discount',
@@ -132,47 +124,49 @@ INSERT INTO banners (
   'https://images.pexels.com/photos/265856/pexels-photo-265856.jpeg?auto=compress&cs=tinysrgb&w=1200',
   NULL,
   3,
-  true,
-  now(),
-  now() + interval '90 days'
-)
-ON CONFLICT DO NOTHING;
+  TRUE,
+  NOW(),
+  NOW() + INTERVAL 90 DAY
+);
 
--- Insert sample product images
-DO $$
-DECLARE
-  product_id_chain uuid;
-  product_id_bracelet uuid;
-  product_id_ring uuid;
-BEGIN
-  -- Get product IDs
-  SELECT id INTO product_id_chain FROM products WHERE erp_product_id = 'PROD001';
-  SELECT id INTO product_id_bracelet FROM products WHERE erp_product_id = 'PROD002';
-  SELECT id INTO product_id_ring FROM products WHERE erp_product_id = 'PROD003';
+/* ================= PRODUCT IMAGES ================= */
 
-  -- Insert product images for chain
-  IF product_id_chain IS NOT NULL THEN
-    INSERT INTO product_images (product_id, image_url, display_order, is_primary)
-    VALUES
-      (product_id_chain, 'https://images.pexels.com/photos/1191531/pexels-photo-1191531.jpeg?auto=compress&cs=tinysrgb&w=600', 1, true),
-      (product_id_chain, 'https://images.pexels.com/photos/1454171/pexels-photo-1454171.jpeg?auto=compress&cs=tinysrgb&w=600', 2, false)
-    ON CONFLICT DO NOTHING;
-  END IF;
+/* Chain Images */
+INSERT IGNORE INTO product_images (product_id, image_url, display_order, is_primary)
+SELECT id,
+       'https://images.pexels.com/photos/1191531/pexels-photo-1191531.jpeg?auto=compress&cs=tinysrgb&w=600',
+       1,
+       TRUE
+FROM products WHERE erp_product_id = 'PROD001';
 
-  -- Insert product images for bracelet
-  IF product_id_bracelet IS NOT NULL THEN
-    INSERT INTO product_images (product_id, image_url, display_order, is_primary)
-    VALUES
-      (product_id_bracelet, 'https://images.pexels.com/photos/265856/pexels-photo-265856.jpeg?auto=compress&cs=tinysrgb&w=600', 1, true),
-      (product_id_bracelet, 'https://images.pexels.com/photos/1454171/pexels-photo-1454171.jpeg?auto=compress&cs=tinysrgb&w=600', 2, false)
-    ON CONFLICT DO NOTHING;
-  END IF;
+INSERT IGNORE INTO product_images (product_id, image_url, display_order, is_primary)
+SELECT id,
+       'https://images.pexels.com/photos/1454171/pexels-photo-1454171.jpeg?auto=compress&cs=tinysrgb&w=600',
+       2,
+       FALSE
+FROM products WHERE erp_product_id = 'PROD001';
 
-  -- Insert product images for ring
-  IF product_id_ring IS NOT NULL THEN
-    INSERT INTO product_images (product_id, image_url, display_order, is_primary)
-    VALUES
-      (product_id_ring, 'https://images.pexels.com/photos/1191531/pexels-photo-1191531.jpeg?auto=compress&cs=tinysrgb&w=600', 1, true)
-    ON CONFLICT DO NOTHING;
-  END IF;
-END $$;
+/* Bracelet Images */
+INSERT IGNORE INTO product_images (product_id, image_url, display_order, is_primary)
+SELECT id,
+       'https://images.pexels.com/photos/265856/pexels-photo-265856.jpeg?auto=compress&cs=tinysrgb&w=600',
+       1,
+       TRUE
+FROM products WHERE erp_product_id = 'PROD002';
+
+INSERT IGNORE INTO product_images (product_id, image_url, display_order, is_primary)
+SELECT id,
+       'https://images.pexels.com/photos/1454171/pexels-photo-1454171.jpeg?auto=compress&cs=tinysrgb&w=600',
+       2,
+       FALSE
+FROM products WHERE erp_product_id = 'PROD002';
+
+/* Ring Images */
+INSERT IGNORE INTO product_images (product_id, image_url, display_order, is_primary)
+SELECT id,
+       'https://images.pexels.com/photos/1191531/pexels-photo-1191531.jpeg?auto=compress&cs=tinysrgb&w=600',
+       1,
+       TRUE
+FROM products WHERE erp_product_id = 'PROD003';
+
+SET FOREIGN_KEY_CHECKS = 1;

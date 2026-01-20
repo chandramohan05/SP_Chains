@@ -1,145 +1,151 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { useState, useEffect, useRef } from 'react';
+import { api } from '../../lib/app';
 import { SupportTicket, TicketResponse } from '../../types';
 import { Plus, MessageSquare, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
+type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+type TicketPriority = 'low' | 'medium' | 'high';
+
 export default function SupportTickets() {
   const { user } = useAuth();
+
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [responses, setResponses] = useState<TicketResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [newMessage, setNewMessage] = useState('');
-  const [formData, setFormData] = useState({
+  const [error, setError] = useState('');
+
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  const [formData, setFormData] = useState<{
+    subject: string;
+    description: string;
+    priority: TicketPriority;
+  }>({
     subject: '',
     description: '',
-    priority: 'medium' as 'low' | 'medium' | 'high'
+    priority: 'medium'
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchTickets();
-    }
-  }, [user]);
+  /* ---------------- FETCH TICKETS ---------------- */
 
   useEffect(() => {
-    if (selectedTicket) {
-      fetchResponses(selectedTicket.id);
-    }
-  }, [selectedTicket]);
+    if (user) fetchTickets();
+  }, [user]);
 
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('support_tickets')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setTickets(data || []);
-    } catch (error: unknown) {
-      console.error('Error fetching tickets:', error);
+      const res = await api.get<SupportTicket[]>('/support-tickets');
+      setTickets(res.data);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load tickets');
     } finally {
       setLoading(false);
     }
   };
 
+  /* ---------------- FETCH RESPONSES ---------------- */
+
+  useEffect(() => {
+    if (selectedTicket) fetchResponses(selectedTicket.id);
+  }, [selectedTicket]);
+
   const fetchResponses = async (ticketId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('ticket_responses')
-        .select('*')
-        .eq('ticket_id', ticketId)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setResponses(data || []);
-    } catch (error: unknown) {
-      console.error('Error fetching responses:', error);
+      const res = await api.get<TicketResponse[]>(
+        `/support-tickets/${ticketId}/responses`
+      );
+      setResponses(res.data);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [responses]);
+
+  /* ---------------- CREATE TICKET ---------------- */
+
+  const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
     try {
-      const { error } = await supabase
-        .from('support_tickets')
-        .insert([{
-          user_id: user?.id,
-          ...formData
-        }]);
+      await api.post('/support-tickets', {
+        subject: formData.subject,
+        description: formData.description,
+        priority: formData.priority
+      });
 
-      if (error) throw error;
-
-      alert('Ticket created successfully');
-      setFormData({ subject: '', description: '', priority: 'medium' });
       setShowForm(false);
+      setFormData({ subject: '', description: '', priority: 'medium' });
       fetchTickets();
-    } catch (error: unknown) {
-      console.error('Error creating ticket:', error);
-      alert('Failed to create ticket');
+    } catch (err) {
+      console.error(err);
+      setError('Failed to create ticket');
     }
   };
+
+  /* ---------------- SEND MESSAGE ---------------- */
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTicket || !newMessage.trim()) return;
+    if (!selectedTicket || !newMessage.trim() || sendingMessage) return;
+
+    setSendingMessage(true);
+    setError('');
 
     try {
-      const { error } = await supabase
-        .from('ticket_responses')
-        .insert([{
-          ticket_id: selectedTicket.id,
-          user_id: user?.id,
-          message: newMessage,
-          is_staff_response: false
-        }]);
-
-      if (error) throw error;
+      await api.post(
+        `/support-tickets/${selectedTicket.id}/responses`,
+        { message: newMessage }
+      );
 
       setNewMessage('');
       fetchResponses(selectedTicket.id);
-    } catch (error: unknown) {
-      console.error('Error sending message:', error);
-      alert('Failed to send message');
+    } catch (err) {
+      console.error(err);
+      setError('Failed to send message');
+    } finally {
+      setSendingMessage(false);
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  /* ---------------- HELPERS ---------------- */
+
+  const getStatusIcon = (status: TicketStatus) => {
     switch (status) {
-      case 'open':
-        return <Clock className="w-5 h-5 text-blue-500" />;
-      case 'in_progress':
-        return <MessageSquare className="w-5 h-5 text-yellow-500" />;
-      case 'resolved':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'closed':
-        return <XCircle className="w-5 h-5 text-slate-500" />;
-      default:
-        return null;
+      case 'open': return <Clock className="w-5 h-5 text-blue-500" />;
+      case 'in_progress': return <MessageSquare className="w-5 h-5 text-yellow-500" />;
+      case 'resolved': return <CheckCircle className="w-5 h-5 text-green-500" />;
+      case 'closed': return <XCircle className="w-5 h-5 text-slate-500" />;
     }
   };
 
-  const getPriorityBadge = (priority: string) => {
-    const colors = {
-      low: 'bg-slate-100 text-slate-700',
-      medium: 'bg-yellow-100 text-yellow-700',
-      high: 'bg-red-100 text-red-700'
-    };
-    return colors[priority as keyof typeof colors] || colors.medium;
-  };
+  const getPriorityBadge = (priority: TicketPriority) => ({
+    low: 'bg-slate-100 text-slate-700',
+    medium: 'bg-yellow-100 text-yellow-700',
+    high: 'bg-red-100 text-red-700'
+  })[priority];
+
+  /* ---------------- LOADING ---------------- */
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800" />
       </div>
     );
   }
+
+  /* ---------------- SINGLE TICKET ---------------- */
 
   if (selectedTicket) {
     return (
@@ -151,184 +157,125 @@ export default function SupportTickets() {
           ← Back to Tickets
         </button>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-4">
-          <div className="flex justify-between items-start mb-4">
+        <div className="bg-white rounded-lg shadow p-6 mb-4">
+          <div className="flex justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800">{selectedTicket.subject}</h2>
+              <h2 className="text-xl font-bold">{selectedTicket.subject}</h2>
               <p className="text-slate-600 mt-2">{selectedTicket.description}</p>
             </div>
-            <div className="flex items-center gap-2">
-              {getStatusIcon(selectedTicket.status)}
-              <span className="capitalize">{selectedTicket.status.replace('_', ' ')}</span>
-            </div>
-          </div>
-          <div className="flex gap-2 text-sm">
-            <span className={`px-3 py-1 rounded-full ${getPriorityBadge(selectedTicket.priority)}`}>
-              {selectedTicket.priority.toUpperCase()}
-            </span>
-            <span className="text-slate-500">
-              Created {new Date(selectedTicket.created_at).toLocaleString()}
-            </span>
+            {getStatusIcon(selectedTicket.status as TicketStatus)}
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-4">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Conversation</h3>
-          <div className="space-y-4 max-h-96 overflow-y-auto mb-4">
-            {responses.map((response) => (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="space-y-3 max-h-96 overflow-y-auto mb-4">
+            {responses.map(r => (
               <div
-                key={response.id}
-                className={`p-4 rounded-lg ${
-                  response.is_staff_response
-                    ? 'bg-blue-50 ml-8'
-                    : 'bg-slate-50 mr-8'
+                key={r.id}
+                className={`p-3 rounded-lg ${
+                  r.is_staff_response ? 'bg-blue-50 ml-8' : 'bg-slate-100 mr-8'
                 }`}
               >
-                <div className="flex justify-between items-start mb-2">
-                  <span className="font-medium text-slate-800">
-                    {response.is_staff_response ? 'Support Team' : 'You'}
-                  </span>
-                  <span className="text-sm text-slate-500">
-                    {new Date(response.created_at).toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-slate-700">{response.message}</p>
+                <p className="text-sm">{r.message}</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {new Date(r.created_at).toLocaleString()}
+                </p>
               </div>
             ))}
+            <div ref={chatEndRef} />
           </div>
 
           {selectedTicket.status !== 'closed' && (
             <form onSubmit={handleSendMessage} className="flex gap-2">
               <input
-                type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type your message..."
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg"
-                required
+                className="flex-1 px-4 py-2 border rounded-lg"
               />
               <button
-                type="submit"
-                className="bg-slate-800 text-white px-6 py-2 rounded-lg hover:bg-slate-700"
+                disabled={sendingMessage}
+                className="bg-slate-800 text-white px-6 py-2 rounded-lg"
               >
                 Send
               </button>
             </form>
           )}
+
+          {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
         </div>
       </div>
     );
   }
 
+  /* ---------------- LIST VIEW ---------------- */
+
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-800">Support Tickets</h2>
+      <div className="flex justify-between mb-6">
+        <h2 className="text-2xl font-bold">Support Tickets</h2>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700"
+          className="bg-slate-800 text-white px-4 py-2 rounded-lg flex gap-2"
         >
-          <Plus className="w-5 h-5" />
-          New Ticket
+          <Plus className="w-5 h-5" /> New Ticket
         </button>
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h3 className="text-xl font-semibold text-slate-800 mb-4">Create New Ticket</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Subject
-              </label>
-              <input
-                type="text"
-                value={formData.subject}
-                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-                required
-              />
-            </div>
+        <div className="bg-white p-6 rounded-lg shadow mb-6">
+          <form onSubmit={handleCreateTicket} className="space-y-4">
+            <input
+              placeholder="Subject"
+              value={formData.subject}
+              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+              className="w-full px-4 py-2 border rounded-lg"
+              required
+            />
+            <textarea
+              placeholder="Description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-4 py-2 border rounded-lg"
+              rows={4}
+              required
+            />
+            <select
+              value={formData.priority}
+              onChange={(e) =>
+                setFormData({ ...formData, priority: e.target.value as TicketPriority })
+              }
+              className="w-full px-4 py-2 border rounded-lg"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-                rows={4}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Priority
-              </label>
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className="bg-slate-800 text-white px-6 py-2 rounded-lg hover:bg-slate-700"
-              >
-                Create Ticket
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="bg-slate-200 text-slate-800 px-6 py-2 rounded-lg hover:bg-slate-300"
-              >
-                Cancel
-              </button>
-            </div>
+            <button className="bg-slate-800 text-white px-6 py-2 rounded-lg">
+              Create Ticket
+            </button>
           </form>
         </div>
       )}
 
       <div className="grid gap-4">
-        {tickets.map((ticket) => (
+        {tickets.map(ticket => (
           <div
             key={ticket.id}
             onClick={() => setSelectedTicket(ticket)}
-            className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg cursor-pointer transition-shadow"
+            className="bg-white p-5 rounded-lg shadow hover:shadow-md cursor-pointer"
           >
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-lg font-semibold text-slate-800">{ticket.subject}</h3>
-              <div className="flex items-center gap-2">
-                {getStatusIcon(ticket.status)}
-                <span className="text-sm capitalize">{ticket.status.replace('_', ' ')}</span>
-              </div>
+            <div className="flex justify-between">
+              <h3 className="font-semibold">{ticket.subject}</h3>
+              {getStatusIcon(ticket.status as TicketStatus)}
             </div>
-            <p className="text-slate-600 mb-3 line-clamp-2">{ticket.description}</p>
-            <div className="flex justify-between items-center">
-              <span className={`text-xs px-3 py-1 rounded-full ${getPriorityBadge(ticket.priority)}`}>
-                {ticket.priority.toUpperCase()}
-              </span>
-              <span className="text-sm text-slate-500">
-                {new Date(ticket.created_at).toLocaleDateString()}
-              </span>
-            </div>
+            <p className="text-sm text-slate-600 mt-1 line-clamp-2">
+              {ticket.description}
+            </p>
           </div>
         ))}
       </div>
-
-      {tickets.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-lg shadow-md">
-          <p className="text-slate-500">No support tickets yet</p>
-        </div>
-      )}
     </div>
   );
 }

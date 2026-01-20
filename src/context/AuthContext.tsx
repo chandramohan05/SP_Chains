@@ -1,108 +1,71 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
-import { User } from '../types';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { User } from '../types'
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL
 
 interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  signOut: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  user: User | null
+  loading: boolean
+  signOut: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const fetchUser = async (authUserId: string, authMeta?: any) => {
+  // ================= FETCH CURRENT USER =================
+  const fetchMe = async () => {
     try {
-      console.log('Fetching user:', { authUserId, mobile: authMeta?.mobile_number });
+      const res = await fetch(`${API_BASE}/auth/me`, {
+        credentials: 'include'
+      })
 
-      const result = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUserId)
-        .maybeSingle();
-
-      console.log('User lookup by ID result:', result);
-
-      if (result.data) {
-        console.log('User found by ID:', result.data);
-        setUser(result.data as User);
-        return;
+      if (!res.ok) {
+        setUser(null)
+        return
       }
 
-      if (authMeta?.mobile_number) {
-        console.log('Trying mobile lookup:', authMeta.mobile_number);
-        const mobileResult = await supabase
-          .from('users')
-          .select('*')
-          .eq('mobile_number', authMeta.mobile_number)
-          .maybeSingle();
-
-        console.log('User lookup by mobile result:', mobileResult);
-
-        if (mobileResult.data) {
-          console.log('User found by mobile:', mobileResult.data);
-          setUser(mobileResult.data as User);
-          return;
-        }
-      }
-
-      console.warn('User not found in database after all attempts');
-      setUser(null);
-    } catch (err) {
-      console.error('Error fetching user:', err);
-      setUser(null);
+      const data = await res.json()
+      setUser(data.user)
+    } catch {
+      setUser(null)
     }
-  };
+  }
 
+  // ================= REFRESH USER =================
   const refreshUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user?.id) {
-      await fetchUser(session.user.id, session.user.user_metadata);
-    }
-  };
+    await fetchMe()
+  }
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.id) {
-        fetchUser(session.user.id, session.user.user_metadata).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      (async () => {
-        if (session?.user?.id) {
-          await fetchUser(session.user.id, session.user.user_metadata);
-        } else {
-          setUser(null);
-        }
-      })();
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
+  // ================= SIGN OUT =================
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-  };
+    await fetch(`${API_BASE}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    setUser(null)
+  }
+
+  // ================= INIT =================
+  useEffect(() => {
+    fetchMe().finally(() => setLoading(false))
+  }, [])
 
   return (
     <AuthContext.Provider value={{ user, loading, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
-  );
+  )
 }
 
+// ================= HOOK =================
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider')
   }
-  return context;
+  return context
 }

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { LogIn, User, Shield } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 
 interface DemoLoginProps {
   onLogin: (role: 'admin' | 'dealer') => void;
@@ -9,29 +8,14 @@ interface DemoLoginProps {
 export function DemoLogin({ onLogin }: DemoLoginProps) {
   const [loading, setLoading] = useState(false);
 
-  const loginAs = async (role: 'admin' | 'dealer') => {
+  const loginAs = (role: 'admin' | 'dealer') => {
     setLoading(true);
-    try {
-      const email = role === 'dealer' ? '8888888888@spchains.internal' : '9999999999@spchains.internal';
-      const password = 'demo123456';
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        console.error('Demo login error:', error);
-        alert('Demo login failed. Please try again.');
-      } else {
-        onLogin(role);
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      alert('An error occurred during login.');
-    } finally {
+    // simulate async login
+    setTimeout(() => {
+      onLogin(role); // immediately set the role in AppContent
       setLoading(false);
-    }
+    }, 500); // simulate network delay
   };
 
   return (
@@ -51,6 +35,7 @@ export function DemoLogin({ onLogin }: DemoLoginProps) {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
+          {/* Admin Panel */}
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden transform transition-all hover:scale-105 hover:shadow-amber-500/20">
             <div className="bg-gradient-to-br from-amber-500/20 to-amber-600/20 p-8 border-b border-white/10">
               <div className="flex items-center justify-center mb-4">
@@ -61,7 +46,6 @@ export function DemoLogin({ onLogin }: DemoLoginProps) {
               <h2 className="text-2xl font-bold text-white text-center mb-2">Admin Panel</h2>
               <p className="text-slate-300 text-center text-sm">Full system control & management</p>
             </div>
-
             <div className="p-8 space-y-4">
               <div className="space-y-3 text-sm text-slate-300">
                 <div className="flex items-start space-x-3">
@@ -81,7 +65,6 @@ export function DemoLogin({ onLogin }: DemoLoginProps) {
                   <span>Coupon & notification management</span>
                 </div>
               </div>
-
               <button
                 onClick={() => loginAs('admin')}
                 disabled={loading}
@@ -95,6 +78,7 @@ export function DemoLogin({ onLogin }: DemoLoginProps) {
             </div>
           </div>
 
+          {/* Dealer Panel */}
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden transform transition-all hover:scale-105 hover:shadow-blue-500/20">
             <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 p-8 border-b border-white/10">
               <div className="flex items-center justify-center mb-4">
@@ -105,7 +89,6 @@ export function DemoLogin({ onLogin }: DemoLoginProps) {
               <h2 className="text-2xl font-bold text-white text-center mb-2">Dealer Portal</h2>
               <p className="text-slate-300 text-center text-sm">Browse, order & track purchases</p>
             </div>
-
             <div className="p-8 space-y-4">
               <div className="space-y-3 text-sm text-slate-300">
                 <div className="flex items-start space-x-3">

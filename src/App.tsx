@@ -2,41 +2,42 @@ import { useState } from 'react';
 import { DemoLogin } from './components/auth/DemoLogin';
 import { DealerDashboard } from './components/dealer/DealerDashboard';
 import { AdminDashboard } from './components/admin/AdminDashboard';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { useAuth } from './context/AuthContext';
+
+type Role = 'admin' | 'dealer';
 
 function AppContent() {
-  const [userRole, setUserRole] = useState<'admin' | 'dealer' | null>(null);
   const { user, loading } = useAuth();
 
+  const [demoRole, setDemoRole] = useState<Role | null>(null);
+
+  /* ---------------- LOADING ---------------- */
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-10 w-10 border-b-2 border-slate-800 rounded-full" />
       </div>
     );
   }
 
-  if (!user && !userRole) {
-    return <DemoLogin onLogin={setUserRole} />;
+  /* ---------------- ROLE RESOLUTION ---------------- */
+  const role: Role | null = user?.role ?? demoRole;
+
+  /* ---------------- LOGIN ---------------- */
+  if (!role) {
+    return <DemoLogin onLogin={(r) => setDemoRole(r)} />;
   }
 
-  if (user?.role === 'admin' || userRole === 'admin') {
-    return <AdminDashboard />;
-  }
-
-  if (user?.role === 'dealer' || userRole === 'dealer') {
-    return <DealerDashboard />;
-  }
-
-  return <DemoLogin onLogin={setUserRole} />;
-}
-
-function App() {
+  /* ---------------- DASHBOARDS ---------------- */
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <div className="min-h-screen bg-slate-50">
+      {role === 'admin' ? <AdminDashboard onLogout={function (): void {
+        throw new Error('Function not implemented.');
+      } } /> : <DealerDashboard />}
+    </div>
   );
 }
 
-export default App;
+export default function App() {
+  return <AppContent />;
+}

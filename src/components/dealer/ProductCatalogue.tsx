@@ -8,11 +8,19 @@ const mockProducts: Product[] = [
     id: '1',
     name: 'Silver Chain 24 inch',
     category: 'Chains',
-    available_sizes: ['22", 24", 26"'],
+    available_sizes: ['22"', '24"', '26"'],
     base_weight: 15.5,
     stock_quantity: 50,
     making_charges: 250,
     is_active: true,
+
+    weight_per_inch: 0.65,
+    wastage_percent: 5,
+    purity_percent: 92.5,
+    size_range_start: 22,
+    size_range_end: 26,
+    size_increment: 2,
+
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   },
@@ -25,6 +33,14 @@ const mockProducts: Product[] = [
     stock_quantity: 30,
     making_charges: 200,
     is_active: true,
+
+    weight_per_inch: 0.5,
+    wastage_percent: 4,
+    purity_percent: 92.5,
+    size_range_start: 6,
+    size_range_end: 8,
+    size_increment: 1,
+
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   },
@@ -37,6 +53,14 @@ const mockProducts: Product[] = [
     stock_quantity: 100,
     making_charges: 150,
     is_active: true,
+
+    weight_per_inch: 0,
+    wastage_percent: 3,
+    purity_percent: 92.5,
+    size_range_start: 6,
+    size_range_end: 9,
+    size_increment: 1,
+
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   },
@@ -49,6 +73,14 @@ const mockProducts: Product[] = [
     stock_quantity: 75,
     making_charges: 180,
     is_active: true,
+
+    weight_per_inch: 0,
+    wastage_percent: 4,
+    purity_percent: 92.5,
+    size_range_start: 0,
+    size_range_end: 0,
+    size_increment: 0,
+
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   },
@@ -61,6 +93,14 @@ const mockProducts: Product[] = [
     stock_quantity: 60,
     making_charges: 120,
     is_active: true,
+
+    weight_per_inch: 0,
+    wastage_percent: 3,
+    purity_percent: 92.5,
+    size_range_start: 0,
+    size_range_end: 0,
+    size_increment: 0,
+
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   },
@@ -73,10 +113,19 @@ const mockProducts: Product[] = [
     stock_quantity: 40,
     making_charges: 220,
     is_active: true,
+
+    weight_per_inch: 0.7,
+    wastage_percent: 5,
+    purity_percent: 92.5,
+    size_range_start: 8,
+    size_range_end: 10,
+    size_increment: 1,
+
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }
 ];
+
 
 const mockPricing: PricingConfig = {
   id: '1',

@@ -1,442 +1,258 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
-import { DealerProfile, User } from '../../types';
-import { CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react';
+import { useEffect, useState } from 'react'
+import { DealerProfile, User } from '../../types'
+import { CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react'
 
-type DealerWithUser = DealerProfile & { user: User };
+const API_BASE = 'http://localhost:5000/api'
+
+type DealerWithUser = DealerProfile & { user: User }
 
 export function DealerApprovalManager() {
-  const [dealers, setDealers] = useState<DealerWithUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
-  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [dealers, setDealers] = useState<DealerWithUser[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
+  const [processingId, setProcessingId] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchDealers();
-  }, [filter]);
+    fetchDealers()
+  }, [filter])
 
+  /* ---------------- FETCH DEALERS ---------------- */
   const fetchDealers = async () => {
     try {
-      setLoading(true);
-
-      let profileQuery = supabase
-        .from('dealer_profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (filter !== 'all') {
-        profileQuery = profileQuery.eq('approval_status', filter);
-      }
-
-      const { data: profiles, error: profileError } = await profileQuery;
-
-      if (profileError) throw profileError;
-
-      if (!profiles || profiles.length === 0) {
-        setDealers([]);
-        return;
-      }
-
-      const userIds = profiles.map(p => p.user_id);
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('*')
-        .in('id', userIds);
-
-      if (usersError) throw usersError;
-
-      const usersMap = new Map(users?.map(u => [u.id, u]) || []);
-
-      const dealersWithUsers = profiles.map(profile => ({
-        ...profile,
-        user: usersMap.get(profile.user_id) || {
-          id: profile.user_id,
-          mobile_number: 'Unknown',
-          role: 'dealer',
-          is_active: false,
-          created_at: profile.created_at,
-          updated_at: profile.updated_at
-        }
-      }));
-
-      setDealers(dealersWithUsers);
-    } catch (error: unknown) {
-      console.error('Error fetching dealers:', error);
-      alert('Failed to fetch dealers');
+      setLoading(true)
+      const res = await fetch(`${API_BASE}/dealers?status=${filter}`)
+      const data = await res.json()
+      setDealers(data)
+    } catch (err) {
+      console.error(err)
+      alert('Failed to fetch dealers')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
+  /* ---------------- APPROVE ---------------- */
   const approveDealer = async (dealerId: string, creditLimit: number) => {
-    setProcessingId(dealerId);
+    setProcessingId(dealerId)
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const adminId = session?.user?.id || null;
-
-      const { error } = await supabase
-        .from('dealer_profiles')
-        .update({
-          approval_status: 'approved',
-          credit_limit: creditLimit,
-          approved_by: adminId,
-          approved_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', dealerId);
-
-      if (error) throw error;
-
-      const dealer = dealers.find(d => d.id === dealerId);
-      if (dealer) {
-        await supabase
-          .from('users')
-          .update({ is_active: true })
-          .eq('id', dealer.user_id);
-      }
-
-      alert('Dealer approved successfully');
-      fetchDealers();
-    } catch (error: unknown) {
-      console.error('Error approving dealer:', error);
-      alert('Failed to approve dealer');
+      await fetch(`${API_BASE}/dealers/${dealerId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credit_limit: creditLimit })
+      })
+      fetchDealers()
+    } catch {
+      alert('Failed to approve dealer')
     } finally {
-      setProcessingId(null);
+      setProcessingId(null)
     }
-  };
+  }
 
+  /* ---------------- REJECT ---------------- */
   const rejectDealer = async (dealerId: string, reason: string) => {
-    setProcessingId(dealerId);
+    setProcessingId(dealerId)
     try {
-      const { error } = await supabase
-        .from('dealer_profiles')
-        .update({
-          approval_status: 'rejected',
-          rejected_reason: reason,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', dealerId);
-
-      if (error) throw error;
-
-      alert('Dealer rejected');
-      fetchDealers();
-    } catch (error: unknown) {
-      console.error('Error rejecting dealer:', error);
-      alert('Failed to reject dealer');
+      await fetch(`${API_BASE}/dealers/${dealerId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason })
+      })
+      fetchDealers()
+    } catch {
+      alert('Failed to reject dealer')
     } finally {
-      setProcessingId(null);
+      setProcessingId(null)
     }
-  };
+  }
 
-  const updateCreditLimit = async (dealerId: string, newCreditLimit: number) => {
-    setProcessingId(dealerId);
+  /* ---------------- CREDIT LIMIT ---------------- */
+  const updateCreditLimit = async (dealerId: string, creditLimit: number) => {
+    setProcessingId(dealerId)
     try {
-      const { error } = await supabase
-        .from('dealer_profiles')
-        .update({
-          credit_limit: newCreditLimit,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', dealerId);
-
-      if (error) throw error;
-
-      alert('Credit limit updated successfully');
-      fetchDealers();
-    } catch (error: unknown) {
-      console.error('Error updating credit limit:', error);
-      alert('Failed to update credit limit');
+      await fetch(`${API_BASE}/dealers/${dealerId}/credit-limit`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credit_limit: creditLimit })
+      })
+      fetchDealers()
+    } catch {
+      alert('Failed to update credit limit')
     } finally {
-      setProcessingId(null);
+      setProcessingId(null)
     }
-  };
+  }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800"></div>
+      <div className="flex justify-center h-64">
+        <div className="animate-spin h-10 w-10 border-b-2 border-slate-800 rounded-full" />
       </div>
-    );
+    )
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-900">Dealer Management</h2>
-        <div className="flex space-x-2">
-          {(['all', 'pending', 'approved', 'rejected'] as const).map(status => (
+        <h2 className="text-2xl font-bold">Dealer Management</h2>
+        <div className="flex gap-2">
+          {(['all', 'pending', 'approved', 'rejected'] as const).map(s => (
             <button
-              key={status}
-              onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors capitalize ${
-                filter === status
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+              key={s}
+              onClick={() => setFilter(s)}
+              className={`px-4 py-2 rounded capitalize ${
+                filter === s ? 'bg-amber-600 text-white' : 'border'
               }`}
             >
-              {status}
+              {s}
             </button>
           ))}
         </div>
       </div>
 
       {dealers.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-          <p className="text-slate-500 text-lg">No dealers found</p>
+        <div className="bg-white p-10 rounded text-center">
+          <p>No dealers found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {dealers.map(dealer => (
+        <div className="space-y-4">
+          {dealers.map(d => (
             <DealerCard
-              key={dealer.id}
-              dealer={dealer}
+              key={d.id}
+              dealer={d}
+              processing={processingId === d.id}
               onApprove={approveDealer}
               onReject={rejectDealer}
               onUpdateCredit={updateCreditLimit}
-              processing={processingId === dealer.id}
             />
           ))}
         </div>
       )}
     </div>
-  );
+  )
 }
+
+/* ===================================================== */
 
 interface DealerCardProps {
-  dealer: DealerWithUser;
-  onApprove: (dealerId: string, creditLimit: number) => void;
-  onReject: (dealerId: string, reason: string) => void;
-  onUpdateCredit: (dealerId: string, newCreditLimit: number) => void;
-  processing: boolean;
+  dealer: DealerWithUser
+  processing: boolean
+  onApprove: (id: string, limit: number) => void
+  onReject: (id: string, reason: string) => void
+  onUpdateCredit: (id: string, limit: number) => void
 }
 
-function DealerCard({ dealer, onApprove, onReject, onUpdateCredit, processing }: DealerCardProps) {
-  const [showApproveForm, setShowApproveForm] = useState(false);
-  const [showRejectForm, setShowRejectForm] = useState(false);
-  const [showEditCreditForm, setShowEditCreditForm] = useState(false);
-  const [creditLimit, setCreditLimit] = useState(50000);
-  const [newCreditLimit, setNewCreditLimit] = useState(dealer.credit_limit);
-  const [rejectionReason, setRejectionReason] = useState('');
+function DealerCard({
+  dealer,
+  processing,
+  onApprove,
+  onReject,
+  onUpdateCredit
+}: DealerCardProps) {
+  const [creditLimit, setCreditLimit] = useState(dealer.credit_limit)
+  const [rejectReason, setRejectReason] = useState('')
+  const [mode, setMode] = useState<'none' | 'approve' | 'reject' | 'credit'>('none')
 
-  const handleApprove = () => {
-    onApprove(dealer.id, creditLimit);
-    setShowApproveForm(false);
-  };
-
-  const handleReject = () => {
-    if (rejectionReason.trim()) {
-      onReject(dealer.id, rejectionReason);
-      setShowRejectForm(false);
-      setRejectionReason('');
-    }
-  };
-
-  const handleUpdateCredit = () => {
-    onUpdateCredit(dealer.id, newCreditLimit);
-    setShowEditCreditForm(false);
-  };
-
-  const getStatusIcon = () => {
-    switch (dealer.approval_status) {
-      case 'approved':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
-      case 'pending':
-        return <Clock className="w-5 h-5 text-amber-600" />;
-      case 'rejected':
-        return <XCircle className="w-5 h-5 text-red-600" />;
-    }
-  };
+  const statusIcon = {
+    approved: <CheckCircle className="text-green-600 w-5 h-5" />,
+    pending: <Clock className="text-amber-600 w-5 h-5" />,
+    rejected: <XCircle className="text-red-600 w-5 h-5" />
+  }[dealer.approval_status]
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-start space-x-3">
-          {getStatusIcon()}
+    <div className="bg-white p-6 rounded border">
+      <div className="flex justify-between mb-3">
+        <div className="flex gap-2 items-center">
+          {statusIcon}
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">{dealer.business_name}</h3>
+            <h3 className="font-bold">{dealer.business_name}</h3>
             <p className="text-sm text-slate-500">{dealer.user.mobile_number}</p>
           </div>
         </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-          dealer.approval_status === 'approved' ? 'bg-green-100 text-green-700' :
-          dealer.approval_status === 'pending' ? 'bg-amber-100 text-amber-700' :
-          'bg-red-100 text-red-700'
-        }`}>
-          {dealer.approval_status.toUpperCase()}
-        </span>
+        <span className="text-xs uppercase">{dealer.approval_status}</span>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-        <div>
-          <label className="text-xs text-slate-500">GST Number</label>
-          <p className="font-medium text-slate-900">{dealer.gst_number}</p>
-        </div>
-        <div>
-          <label className="text-xs text-slate-500">PAN Number</label>
-          <p className="font-medium text-slate-900">{dealer.pan_number}</p>
-        </div>
-        <div>
-          <label className="text-xs text-slate-500">Credit Limit</label>
-          <p className="font-medium text-slate-900">₹{dealer.credit_limit.toFixed(2)}</p>
-        </div>
-        <div>
-          <label className="text-xs text-slate-500">Registered</label>
-          <p className="font-medium text-slate-900">
-            {new Date(dealer.created_at).toLocaleDateString('en-IN')}
-          </p>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
+        <div><b>GST</b><br />{dealer.gst_number}</div>
+        <div><b>PAN</b><br />{dealer.pan_number}</div>
+        <div><b>Credit</b><br />₹{dealer.credit_limit}</div>
+        <div><b>Joined</b><br />{new Date(dealer.created_at).toLocaleDateString('en-IN')}</div>
       </div>
-
-      {dealer.rejected_reason && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-700">
-            <span className="font-medium">Rejection Reason: </span>
-            {dealer.rejected_reason}
-          </p>
-        </div>
-      )}
 
       {dealer.approval_status === 'approved' && (
-        <div className="space-y-3">
-          {showEditCreditForm ? (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Update Credit Limit (₹)
-                </label>
-                <input
-                  type="number"
-                  value={newCreditLimit}
-                  onChange={(e) => setNewCreditLimit(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  min="0"
-                  step="10000"
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  Current: ₹{dealer.credit_limit.toLocaleString('en-IN')} | Used: ₹{dealer.credit_used.toLocaleString('en-IN')}
-                </p>
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={handleUpdateCredit}
-                  disabled={processing}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  Update Credit Limit
-                </button>
-                <button
-                  onClick={() => {
-                    setShowEditCreditForm(false);
-                    setNewCreditLimit(dealer.credit_limit);
-                  }}
-                  className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
-                >
-                  Cancel
-                </button>
-              </div>
+        <>
+          {mode === 'credit' ? (
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={creditLimit}
+                onChange={e => setCreditLimit(Number(e.target.value))}
+                className="border px-3 py-2 rounded w-full"
+              />
+              <button
+                onClick={() => {
+                  onUpdateCredit(dealer.id, creditLimit)
+                  setMode('none')
+                }}
+                disabled={processing}
+                className="bg-blue-600 text-white px-4 rounded"
+              >
+                Save
+              </button>
             </div>
           ) : (
             <button
-              onClick={() => setShowEditCreditForm(true)}
-              disabled={processing}
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              onClick={() => setMode('credit')}
+              className="bg-blue-600 text-white w-full py-2 rounded"
             >
-              <DollarSign className="w-4 h-4 inline mr-2" />
-              Manage Credit Limit
+              <DollarSign className="inline w-4 h-4 mr-2" />
+              Manage Credit
             </button>
           )}
-        </div>
+        </>
       )}
 
       {dealer.approval_status === 'pending' && (
-        <div className="space-y-3">
-          {showApproveForm ? (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Set Credit Limit (₹)
-                </label>
-                <input
-                  type="number"
-                  value={creditLimit}
-                  onChange={(e) => setCreditLimit(parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                  min="0"
-                  step="10000"
-                />
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={handleApprove}
-                  disabled={processing}
-                  className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
-                >
-                  Confirm Approval
-                </button>
-                <button
-                  onClick={() => setShowApproveForm(false)}
-                  className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : showRejectForm ? (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Rejection Reason
-                </label>
-                <textarea
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                  rows={3}
-                  placeholder="Provide a reason for rejection..."
-                />
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={handleReject}
-                  disabled={processing || !rejectionReason.trim()}
-                  className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50"
-                >
-                  Confirm Rejection
-                </button>
-                <button
-                  onClick={() => {
-                    setShowRejectForm(false);
-                    setRejectionReason('');
-                  }}
-                  className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex space-x-2">
+        <>
+          {mode === 'approve' && (
+            <button
+              onClick={() => onApprove(dealer.id, creditLimit)}
+              disabled={processing}
+              className="bg-green-600 text-white w-full py-2 rounded"
+            >
+              Confirm Approval
+            </button>
+          )}
+
+          {mode === 'reject' && (
+            <>
+              <textarea
+                value={rejectReason}
+                onChange={e => setRejectReason(e.target.value)}
+                className="border w-full p-2 rounded mb-2"
+                placeholder="Reason..."
+              />
               <button
-                onClick={() => setShowApproveForm(true)}
-                disabled={processing}
-                className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
+                onClick={() => onReject(dealer.id, rejectReason)}
+                disabled={!rejectReason}
+                className="bg-red-600 text-white w-full py-2 rounded"
               >
-                <CheckCircle className="w-4 h-4 inline mr-2" />
+                Confirm Rejection
+              </button>
+            </>
+          )}
+
+          {mode === 'none' && (
+            <div className="flex gap-2">
+              <button onClick={() => setMode('approve')} className="bg-green-600 text-white flex-1 py-2 rounded">
                 Approve
               </button>
-              <button
-                onClick={() => setShowRejectForm(true)}
-                disabled={processing}
-                className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50"
-              >
-                <XCircle className="w-4 h-4 inline mr-2" />
+              <button onClick={() => setMode('reject')} className="bg-red-600 text-white flex-1 py-2 rounded">
                 Reject
               </button>
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
-  );
+  )
 }
