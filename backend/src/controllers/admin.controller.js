@@ -83,3 +83,14 @@ export const rejectDealer = async (req, res) => {
     res.status(500).json({ message: 'Server error' })
   }
 }
+export const getBanners = async (req, res) => {
+  const [rows] = await db.query(`
+    SELECT *
+    FROM banners
+    ORDER BY display_order ASC
+  `)
+
+  res.json({
+    banners: rows
+  })
+}

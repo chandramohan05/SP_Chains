@@ -49,4 +49,14 @@ export const verifyOTP = async (req, res) => {
     token,
     user
   })
+  
 }
+/* ================= GET LOGGED-IN USER ================= */
+export const getMe = async (req, res) => {
+  return res.json({
+    user: {
+      id: req.user.id,
+      role: req.user.role
+    }
+  });
+};

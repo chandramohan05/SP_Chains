@@ -8,6 +8,8 @@ import adminRoutes from './routes/admin.routes.js'
 import productRoutes from './routes/product.routes.js'
 import cartRoutes from './routes/cart.routes.js'
 import orderRoutes from './routes/order.routes.js'
+import bannerRoutes from './routes/banner.routes.js'
+import couponRoutes from './routes/coupon.routes.js'
 
 
 
@@ -27,10 +29,15 @@ app.get('/', (req, res) => {
 // ✅ ROUTES
 app.use('/api/auth', authRoutes)
 app.use('/api/dealers', dealerRoutes)
-app.use('/api/admin', adminRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/cart', cartRoutes)
 app.use('/api/orders', orderRoutes)
+
+/* ✅ BANNERS (NO AUTH – DEMO MODE) */
+app.use('/api/banners', bannerRoutes)
+app.use('/api/coupons', couponRoutes)
+
+
 
 // ✅ EXPORT
 export default app

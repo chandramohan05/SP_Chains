@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Eye, EyeOff } from 'lucide-react';
-import { Banner } from '../../types';
+import { useState, useEffect } from 'react'
+import { Plus, Edit2, Trash2, Eye, EyeOff } from 'lucide-react'
+import { Banner } from '../../types'
 
-const API_URL = 'http://localhost:5000/api/admin/banners';
+const API_URL = 'http://localhost:5000/api/banners'
+
 
 export default function BannerManager() {
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
+  const [banners, setBanners] = useState<Banner[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editingBanner, setEditingBanner] = useState<Banner | null>(null)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -18,42 +19,40 @@ export default function BannerManager() {
     display_order: 0,
     start_date: '',
     end_date: ''
-  });
-
-  const token = localStorage.getItem('token');
-
-  useEffect(() => {
-    fetchBanners();
-  }, []);
+  })
 
   /* ================= FETCH ================= */
+  useEffect(() => {
+    fetchBanners()
+  }, [])
 
   const fetchBanners = async () => {
     try {
-      setLoading(true);
-      const res = await fetch(API_URL, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      const data = await res.json();
-      setBanners(data);
+      setLoading(true)
+      const res = await fetch(API_URL)
+
+      if (!res.ok) throw new Error('Failed to fetch')
+
+      const data = await res.json()
+
+      // ✅ backend returns ARRAY directly
+      setBanners(Array.isArray(data) ? data : [])
     } catch (err) {
-      alert('Failed to fetch banners');
+      console.error(err)
+      alert('Failed to fetch banners')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   /* ================= CREATE / UPDATE ================= */
-
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     const payload = {
       ...formData,
       end_date: formData.end_date || null
-    };
+    }
 
     try {
       const res = await fetch(
@@ -61,27 +60,25 @@ export default function BannerManager() {
         {
           method: editingBanner ? 'PUT' : 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify(payload)
         }
-      );
+      )
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error()
 
-      alert(editingBanner ? 'Banner updated' : 'Banner created');
-      resetForm();
-      fetchBanners();
+      alert(editingBanner ? 'Banner updated' : 'Banner created')
+      resetForm()
+      fetchBanners()
     } catch {
-      alert('Failed to save banner');
+      alert('Failed to save banner')
     }
-  };
+  }
 
   /* ================= ACTIONS ================= */
-
   const handleEdit = (banner: Banner) => {
-    setEditingBanner(banner);
+    setEditingBanner(banner)
     setFormData({
       title: banner.title,
       description: banner.description || '',
@@ -90,32 +87,26 @@ export default function BannerManager() {
       display_order: banner.display_order,
       start_date: banner.start_date.split('T')[0],
       end_date: banner.end_date ? banner.end_date.split('T')[0] : ''
-    });
-    setShowForm(true);
-  };
+    })
+    setShowForm(true)
+  }
 
   const handleToggleActive = async (banner: Banner) => {
     await fetch(`${API_URL}/${banner.id}/toggle`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-    fetchBanners();
-  };
+      method: 'PATCH'
+    })
+    fetchBanners()
+  }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this banner?')) return;
+    if (!confirm('Delete this banner?')) return
 
     await fetch(`${API_URL}/${id}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+      method: 'DELETE'
+    })
 
-    fetchBanners();
-  };
+    fetchBanners()
+  }
 
   const resetForm = () => {
     setFormData({
@@ -126,21 +117,21 @@ export default function BannerManager() {
       display_order: 0,
       start_date: '',
       end_date: ''
-    });
-    setEditingBanner(null);
-    setShowForm(false);
-  };
+    })
+    setEditingBanner(null)
+    setShowForm(false)
+  }
 
+  /* ================= LOADING ================= */
   if (loading) {
     return (
       <div className="flex justify-center h-64">
         <div className="animate-spin h-12 w-12 border-b-2 border-slate-800 rounded-full" />
       </div>
-    );
+    )
   }
 
   /* ================= UI ================= */
-
   return (
     <div className="max-w-6xl mx-auto">
       <div className="flex justify-between mb-6">
@@ -191,7 +182,9 @@ export default function BannerManager() {
               className="border p-2"
               placeholder="Order"
               value={formData.display_order}
-              onChange={e => setFormData({ ...formData, display_order: +e.target.value })}
+              onChange={e =>
+                setFormData({ ...formData, display_order: Number(e.target.value) })
+              }
             />
             <input
               type="date"
@@ -239,5 +232,5 @@ export default function BannerManager() {
         </div>
       ))}
     </div>
-  );
+  )
 }
