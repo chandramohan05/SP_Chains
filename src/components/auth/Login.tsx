@@ -18,7 +18,7 @@ export function Login({ onLoginSuccess, onSwitchToRegister }: LoginProps) {
   // ================= SEND OTP =================
   const sendOTP = async () => {
     if (mobile.length !== 10) {
-      setError('Enter valid 10-digit mobile number')
+      setError('Enter valid 10-digit mobile number')  
       return
     }
 
@@ -44,35 +44,44 @@ export function Login({ onLoginSuccess, onSwitchToRegister }: LoginProps) {
   }
 
   // ================= VERIFY OTP =================
-  const verifyOTP = async () => {
-    if (otp.length !== 6) {
-      setError('Enter valid OTP')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-
-    try {
-      const res = await fetch(`${API_BASE}/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile, otp })
-      })
-
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message)
-
-      // ✅ Save JWT
-      localStorage.setItem('token', data.token)
-
-      onLoginSuccess(data.user)
-    } catch (err: any) {
-      setError(err.message || 'OTP verification failed')
-    } finally {
-      setLoading(false)
-    }
+ const verifyOTP = async () => {
+  if (otp.length !== 6) {
+    setError('Enter valid OTP')
+    return
   }
+
+  setLoading(true)
+  setError('')
+
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mobile, otp })
+    })
+
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.message)
+
+    // ✅ SAVE TOKEN CORRECTLY
+    if (data.user.role === 'admin') {
+      localStorage.setItem('adminToken', data.token)
+      localStorage.removeItem('dealerToken')
+    } else {
+      localStorage.setItem('dealerToken', data.token)
+      localStorage.removeItem('adminToken')
+    }
+
+    console.log('Saved token:', data.user.role, data.token)
+
+    onLoginSuccess(data.user)
+  } catch (err: any) {
+    setError(err.message || 'OTP verification failed')
+  } finally {
+    setLoading(false)
+  }
+}
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-900">

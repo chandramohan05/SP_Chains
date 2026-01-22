@@ -8,32 +8,42 @@ export const getCoupons = async (req, res) => {
 }
 
 export const createCoupon = async (req, res) => {
-  const {
-    code,
-    discount_type,
-    discount_value,
-    min_quantity,
-    applicable_payment_modes,
-    expiry_date
-  } = req.body
-
-  await db.query(
-    `INSERT INTO coupons
-     (code, discount_type, discount_value, min_quantity,
-      applicable_payment_modes, expiry_date)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [
+  try {
+    const {
       code,
       discount_type,
       discount_value,
       min_quantity,
-      JSON.stringify(applicable_payment_modes),
+      applicable_payment_modes,
       expiry_date
-    ]
-  )
+    } = req.body
 
-  res.status(201).json({ message: 'Coupon created' })
+    const [result] = await db.query(
+      `
+      INSERT INTO coupons
+      (code, discount_type, discount_value, min_quantity, applicable_payment_modes, expiry_date, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+      `,
+      [
+        code,
+        discount_type,
+        discount_value,
+        min_quantity,
+        JSON.stringify(applicable_payment_modes),
+        expiry_date
+      ]
+    )
+
+    res.status(201).json({
+      message: 'Coupon created',
+      id: result.insertId
+    })
+  } catch (err) {
+    console.error('Create coupon error:', err)
+    res.status(500).json({ message: 'Failed to create coupon' })
+  }
 }
+
 
 export const toggleCoupon = async (req, res) => {
   const { id } = req.params

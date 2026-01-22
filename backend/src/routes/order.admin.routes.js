@@ -15,7 +15,5 @@ router.get('/orders', protect, requireRole('admin'), getAllOrders)
 router.patch('/orders/:id/approve', protect, requireRole('admin'), approveOrder)
 router.patch('/orders/:id/reject', protect, requireRole('admin'), rejectOrder)
 router.patch('/orders/:id/complete', protect, requireRole('admin'), completeOrder)
-router.get('/orders', protect, requireRole('admin'), getAllOrders)
-
 
 export default router

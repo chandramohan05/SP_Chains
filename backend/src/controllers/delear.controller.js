@@ -35,33 +35,39 @@ export const getDealerProfile = async (req, res) => {
   }
 }
 export const getDealers = async (req, res) => {
-  const { status } = req.query
+  try {
+    const { status } = req.query
 
-  let query = `
-    SELECT 
-      d.id AS dealer_id,
-      u.id AS user_id,
-      u.mobile_number,
-      d.business_name,
-      d.gst_number,
-      d.pan_number,
-      d.approval_status,
-      d.credit_limit,
-      d.created_at
-    FROM users u
-    JOIN dealer_profiles d ON d.user_id = u.id
-  `
+    let query = `
+      SELECT 
+        d.id            AS dealer_id,
+        d.user_id,
+        u.mobile_number,
+        d.business_name,
+        d.gst_number,
+        d.pan_number,
+        d.approval_status,
+        d.credit_limit,
+        d.created_at
+      FROM dealer_profiles d
+      JOIN users u ON u.id = d.user_id
+    `
 
-  const params = []
+    const params = []
 
-  if (status && status !== 'all') {
-    query += ' WHERE d.approval_status = ?'
-    params.push(status)
+    if (status && status !== 'all') {
+      query += ' WHERE d.approval_status = ?'
+      params.push(status)
+    }
+
+    const [rows] = await db.query(query, params)
+    res.json(rows)
+  } catch (err) {
+    console.error('getDealers error:', err)
+    res.status(500).json({ message: 'Failed to fetch dealers' })
   }
-
-  const [rows] = await db.query(query, params)
-  res.json(rows)
 }
+
 
 /* ================= APPROVE DEALER ================= */
 export const approveDealer = async (req, res) => {
