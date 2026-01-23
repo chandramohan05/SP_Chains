@@ -1,34 +1,55 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { User } from '../types'
+
+type Role = 'admin' | 'dealer'
+
+export interface AuthUser {
+  id: string
+  role: Role
+}
 
 interface AuthContextType {
-  user: User | null
+  user: AuthUser | null
   loading: boolean
+  signIn: (user: AuthUser) => void
   signOut: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const signIn = (user: AuthUser) => {
+    localStorage.setItem('user', JSON.stringify(user))
+    setUser(user)
+  }
+
+  /* ---------------- INIT AUTH ---------------- */
   useEffect(() => {
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
+    const adminToken = localStorage.getItem('adminToken')
+    const dealerToken = localStorage.getItem('dealerToken')
+
+    if (adminToken) {
+      setUser({ id: 'admin', role: 'admin' })
+    } else if (dealerToken) {
+      setUser({ id: 'dealer', role: 'dealer' })
     }
+
     setLoading(false)
   }, [])
 
+  /* ---------------- LOGOUT ---------------- */
   const signOut = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    setUser(null)
-  }
+  localStorage.removeItem('adminToken')
+  localStorage.removeItem('dealerToken')
+  localStorage.removeItem('user')
+  setUser(null)
+}
+
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

@@ -31,7 +31,7 @@ type View =
   | 'support'
   | 'inventory'
 
-/* ================= MOCK DEALER ================= */
+/* ================= TEMP DEALER PROFILE (WILL BE API LATER) ================= */
 
 const dealerProfile: DealerProfileType = {
   id: '1',
@@ -49,7 +49,7 @@ const dealerProfile: DealerProfileType = {
 
 /* ================= DASHBOARD ================= */
 
-export function DealerDashboard() {
+export function DealerDashboard({ onLogout }: { onLogout: () => void }) {
   const [currentView, setCurrentView] = useState<View>('home')
   const [cartCount, setCartCount] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -135,12 +135,9 @@ export function DealerDashboard() {
             <MenuButton icon={Warehouse} label="Inventory" onClick={() => navigateTo('inventory')} />
             <MenuButton icon={MessageSquare} label="Support" onClick={() => navigateTo('support')} />
 
-            {/* ✅ DEMO LOGOUT */}
+            {/* ✅ REAL LOGOUT */}
             <button
-              onClick={() => {
-                localStorage.removeItem('demo_role')
-                window.location.reload()
-              }}
+              onClick={onLogout}
               className="w-full flex gap-3 items-center px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg"
             >
               <LogOut className="w-5 h-5" />
