@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Notification } from '../../types'
 import { Bell, Plus, Trash2 } from 'lucide-react'
+import { Notification } from '../../types'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL
 
@@ -8,6 +8,7 @@ export function NotificationManager() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const [formData, setFormData] = useState({
     title: '',
@@ -16,11 +17,34 @@ export function NotificationManager() {
     targetAudience: 'all' as 'all' | 'dealers'
   })
 
+  /* ================= TOKEN ================= */
+  const getAdminToken = () => localStorage.getItem('adminToken')
+  
+
   /* ================= FETCH ================= */
   const fetchNotifications = async () => {
-    const res = await fetch(`${API_BASE}/api/admin/notifications`)
-    const data = await res.json()
-    setNotifications(data || [])
+    try {
+      setError('')
+      const token = getAdminToken()
+
+      if (!token) {
+        setError('Admin session expired. Please login again.')
+        return
+      }
+
+     const res = await fetch(`${API_BASE}/api/admin/notifications`, {
+  headers: {
+    Authorization: `Bearer ${getAdminToken()}`
+  }
+})
+
+      if (!res.ok) throw new Error('Fetch failed')
+
+      const data = await res.json()
+      setNotifications(data || [])
+    } catch {
+      setError('Unable to load notifications')
+    }
   }
 
   useEffect(() => {
@@ -31,45 +55,89 @@ export function NotificationManager() {
   const createNotification = async () => {
     if (!formData.title || !formData.message) return
 
-    setLoading(true)
-    await fetch(`${API_BASE}/api/admin/notifications`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: formData.title,
-        message: formData.message,
-        type: formData.type,
-        target_audience: formData.targetAudience
-      })
-    })
+    try {
+      setLoading(true)
+      setError('')
 
-    setFormData({ title: '', message: '', type: 'offer', targetAudience: 'all' })
-    setShowForm(false)
-    setLoading(false)
-    fetchNotifications()
+      const token = getAdminToken()
+      if (!token) {
+        setError('Admin session expired. Please login again.')
+        return
+      }
+
+      const res = await fetch(`${API_BASE}/api/admin/notifications`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          message: formData.message,
+          type: formData.type,
+          target_audience: formData.targetAudience
+        })
+      })
+
+      if (!res.ok) throw new Error('Publish failed')
+
+      setFormData({
+        title: '',
+        message: '',
+        type: 'offer',
+        targetAudience: 'all'
+      })
+      setShowForm(false)
+      fetchNotifications()
+    } catch {
+      setError('Notification publish failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   /* ================= TOGGLE ================= */
   const toggleNotification = async (id: string) => {
+    const token = getAdminToken()
+    if (!token) return
+
     await fetch(`${API_BASE}/api/admin/notifications/${id}/toggle`, {
-      method: 'PATCH'
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
     })
+
     fetchNotifications()
   }
 
   /* ================= DELETE ================= */
   const deleteNotification = async (id: string) => {
     if (!confirm('Delete this notification?')) return
-    await fetch(`${API_BASE}/api/admin/notifications/${id}`, { method: 'DELETE' })
+
+    const token = getAdminToken()
+    if (!token) return
+
+    await fetch(`${API_BASE}/api/admin/notifications/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+
     fetchNotifications()
   }
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'offer': return 'bg-green-100 text-green-700'
-      case 'alert': return 'bg-red-100 text-red-700'
-      case 'gst_update': return 'bg-blue-100 text-blue-700'
-      default: return 'bg-slate-100 text-slate-700'
+      case 'offer':
+        return 'bg-green-100 text-green-700'
+      case 'alert':
+        return 'bg-red-100 text-red-700'
+      case 'gst_update':
+        return 'bg-blue-100 text-blue-700'
+      default:
+        return 'bg-slate-100 text-slate-700'
     }
   }
 
@@ -82,9 +150,16 @@ export function NotificationManager() {
           onClick={() => setShowForm(!showForm)}
           className="bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center"
         >
-          <Plus className="w-4 h-4 mr-2" /> Create Notification
+          <Plus className="w-4 h-4 mr-2" />
+          Create Notification
         </button>
       </div>
+
+      {error && (
+        <div className="bg-red-100 text-red-700 p-3 rounded">
+          {error}
+        </div>
+      )}
 
       {/* CREATE FORM */}
       {showForm && (
@@ -108,7 +183,9 @@ export function NotificationManager() {
             <select
               className="border p-2 rounded"
               value={formData.type}
-              onChange={e => setFormData({ ...formData, type: e.target.value as any })}
+              onChange={e =>
+                setFormData({ ...formData, type: e.target.value as any })
+              }
             >
               <option value="offer">Offer</option>
               <option value="alert">Alert</option>
@@ -118,7 +195,12 @@ export function NotificationManager() {
             <select
               className="border p-2 rounded"
               value={formData.targetAudience}
-              onChange={e => setFormData({ ...formData, targetAudience: e.target.value as any })}
+              onChange={e =>
+                setFormData({
+                  ...formData,
+                  targetAudience: e.target.value as any
+                })
+              }
             >
               <option value="all">All Users</option>
               <option value="dealers">Dealers Only</option>
@@ -160,9 +242,13 @@ export function NotificationManager() {
                   <span className={`text-xs px-2 py-1 rounded ${getTypeColor(n.type)}`}>
                     {n.type.toUpperCase()}
                   </span>
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    n.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100'
-                  }`}>
+                  <span
+                    className={`text-xs px-2 py-1 rounded ${
+                      n.is_active
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-slate-100'
+                    }`}
+                  >
                     {n.is_active ? 'ACTIVE' : 'INACTIVE'}
                   </span>
                 </div>
