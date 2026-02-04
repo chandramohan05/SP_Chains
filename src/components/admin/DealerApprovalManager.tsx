@@ -18,7 +18,8 @@ type Dealer = {
 export function DealerApprovalManager() {
   const [dealers, setDealers] = useState<Dealer[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
+  const [filter, setFilter] =
+    useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
   const [processingId, setProcessingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -26,23 +27,20 @@ export function DealerApprovalManager() {
   }, [filter])
 
   const fetchDealers = async () => {
-  try {
-    setLoading(true)
-
-    const res = await fetch(`${API_BASE}/dealers?status=${filter}`, {
-      cache: 'no-store'   // ✅ ADD THIS LINE
-    })
-
-    const data = await res.json()
-    setDealers(Array.isArray(data) ? data : [])
-  } catch (err) {
-    console.error(err)
-    alert('Failed to fetch dealers')
-  } finally {
-    setLoading(false)
+    try {
+      setLoading(true)
+      const res = await fetch(`${API_BASE}/dealers?status=${filter}`, {
+        cache: 'no-store'
+      })
+      const data = await res.json()
+      setDealers(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error(err)
+      alert('Failed to fetch dealers')
+    } finally {
+      setLoading(false)
+    }
   }
-}
-
 
   const approveDealer = async (dealerId: string, creditLimit: number) => {
     setProcessingId(dealerId)
@@ -53,8 +51,6 @@ export function DealerApprovalManager() {
         body: JSON.stringify({ credit_limit: creditLimit })
       })
       fetchDealers()
-    } catch {
-      alert('Failed to approve dealer')
     } finally {
       setProcessingId(null)
     }
@@ -69,8 +65,6 @@ export function DealerApprovalManager() {
         body: JSON.stringify({ reason })
       })
       fetchDealers()
-    } catch {
-      alert('Failed to reject dealer')
     } finally {
       setProcessingId(null)
     }
@@ -85,8 +79,6 @@ export function DealerApprovalManager() {
         body: JSON.stringify({ credit_limit: creditLimit })
       })
       fetchDealers()
-    } catch {
-      alert('Failed to update credit limit')
     } finally {
       setProcessingId(null)
     }
@@ -94,7 +86,7 @@ export function DealerApprovalManager() {
 
   if (loading) {
     return (
-      <div className="flex justify-center h-64">
+      <div className="flex justify-center h-64 items-center">
         <div className="animate-spin h-10 w-10 border-b-2 border-slate-800 rounded-full" />
       </div>
     )
@@ -102,15 +94,19 @@ export function DealerApprovalManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* ================= HEADER (RESPONSIVE FIX) ================= */}
+      <div className="space-y-3">
         <h2 className="text-2xl font-bold">Dealer Management</h2>
-        <div className="flex gap-2">
+
+        <div className="flex flex-wrap gap-2">
           {(['all', 'pending', 'approved', 'rejected'] as const).map(s => (
             <button
               key={s}
               onClick={() => setFilter(s)}
-              className={`px-4 py-2 rounded capitalize ${
-                filter === s ? 'bg-amber-600 text-white' : 'border'
+              className={`px-4 py-2 rounded capitalize transition ${
+                filter === s
+                  ? 'bg-amber-600 text-white'
+                  : 'border bg-white'
               }`}
             >
               {s}
@@ -119,8 +115,11 @@ export function DealerApprovalManager() {
         </div>
       </div>
 
+      {/* ================= DEALER LIST ================= */}
       {dealers.length === 0 ? (
-        <div className="bg-white p-10 rounded text-center">No dealers found</div>
+        <div className="bg-white p-10 rounded text-center">
+          No dealers found
+        </div>
       ) : (
         dealers.map(d => (
           <DealerCard
@@ -153,8 +152,6 @@ function DealerCard({
   onUpdateCredit: (id: string, limit: number) => void
 }) {
   const [creditLimit, setCreditLimit] = useState(dealer.credit_limit)
-  const [rejectReason, setRejectReason] = useState('')
-  const [mode, setMode] = useState<'none' | 'approve' | 'reject' | 'credit'>('none')
 
   const statusIcon = {
     approved: <CheckCircle className="text-green-600 w-5 h-5" />,

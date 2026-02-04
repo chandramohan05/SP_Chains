@@ -17,32 +17,28 @@ export function OrderManagement() {
 
   /* ================= FETCH ORDERS ================= */
   const fetchOrders = async () => {
-  const token = localStorage.getItem('adminToken')
+    const token = localStorage.getItem('adminToken')
 
-  if (!token) {
-    console.error('Admin token missing')
-    return
-  }
-
-  try {
-    const res = await fetch(`${API_BASE}/api/admin/orders`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-
-    if (!res.ok) {
-      throw new Error('Unauthorized')
+    if (!token) {
+      console.error('Admin token missing')
+      return
     }
 
-    const data = await res.json()
-    setOrders(data)
-  } catch (err) {
-    console.error('Fetch orders error:', err)
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/orders`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      if (!res.ok) throw new Error('Unauthorized')
+
+      const data = await res.json()
+      setOrders(data)
+    } catch (err) {
+      console.error('Fetch orders error:', err)
+    }
   }
-}
-
-
 
   useEffect(() => {
     fetchOrders()
@@ -51,7 +47,7 @@ export function OrderManagement() {
   const filteredOrders =
     filter === 'all' ? orders : orders.filter(o => o.status === filter)
 
-  /* ================= APPROVE ================= */
+  /* ================= ACTIONS ================= */
   const approveOrder = async (orderId: string) => {
     try {
       const token = localStorage.getItem('adminToken')
@@ -68,7 +64,6 @@ export function OrderManagement() {
     }
   }
 
-  /* ================= REJECT ================= */
   const rejectOrder = async (orderId: string, reason: string) => {
     try {
       const token = localStorage.getItem('adminToken')
@@ -89,7 +84,6 @@ export function OrderManagement() {
     }
   }
 
-  /* ================= COMPLETE ================= */
   const completeOrder = async (orderId: string) => {
     try {
       const token = localStorage.getItem('adminToken')
@@ -108,16 +102,19 @@ export function OrderManagement() {
 
   return (
     <div className="space-y-6">
-      {/* HEADER */}
-      <div className="flex justify-between items-center">
+      {/* ================= HEADER (RESPONSIVE FIX) ================= */}
+      <div className="space-y-3">
         <h2 className="text-2xl font-bold">Order Management</h2>
-        <div className="flex gap-2">
+
+        <div className="flex flex-wrap gap-2">
           {(['all', 'placed', 'approved', 'completed', 'rejected'] as const).map(s => (
             <button
               key={s}
               onClick={() => setFilter(s)}
-              className={`px-4 py-2 rounded ${
-                filter === s ? 'bg-amber-600 text-white' : 'border'
+              className={`px-4 py-2 rounded capitalize transition ${
+                filter === s
+                  ? 'bg-amber-600 text-white'
+                  : 'border bg-white'
               }`}
             >
               {s}
@@ -126,6 +123,7 @@ export function OrderManagement() {
         </div>
       </div>
 
+      {/* ================= ORDERS LIST ================= */}
       {filteredOrders.length === 0 ? (
         <div className="bg-white p-10 rounded text-center">
           <Package className="mx-auto mb-3 text-slate-300" size={40} />

@@ -13,6 +13,10 @@ import couponRoutes from './routes/coupon.routes.js'
 import notificationRoutes from './routes/notification.routes.js'
 import pricingRoutes from './routes/pricing.routes.js' // ✅ ADD THIS
 import supportRoutes from './routes/support.routes.js'
+import reviewRoutes from './routes/review.routes.js';
+import deliveryRoutes from './routes/delivery.routes.js'
+
+
 
 
 // CREATE APP
@@ -45,6 +49,9 @@ app.use('/api/banners', bannerRoutes)
 app.use('/api/coupons', couponRoutes)
 //app.use('/api/admin', supportRoutes)
 app.use('/', supportRoutes)
+app.use('/api', reviewRoutes);
+app.use('/api/admin/deliveries', deliveryRoutes)
+
 
 
 // ================= ADMIN =================
